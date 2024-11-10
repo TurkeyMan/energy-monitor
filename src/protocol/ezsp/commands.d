@@ -4,7 +4,7 @@ nothrow @nogc:
 
 
 // HACK: what is this? Why the spec randomly uses this for signal powers?
-alias int8s = ubyte;
+alias int8s = byte;
 
 
 // Identifies a configuration value.
@@ -134,16 +134,16 @@ enum EmberConfigTxPowerMode : ushort {
 
 // Identifies a policy.
 enum EzspPolicyId : ubyte {
-    TRUST_CENTER_POLICY = 0x00, // Controls trust center behavior.
-    BINDING_MODIFICATION_POLICY = 0x01, // Controls how external binding modification requests are handled.
-    UNICAST_REPLIES_POLICY = 0x02, // Controls whether the Host supplies unicast replies.
-    POLL_HANDLER_POLICY = 0x03, // Controls whether pollHandler callbacks are generated.
-    MESSAGE_CONTENTS_IN_CALLBACK_POLICY = 0x04, // Controls whether the message contents are included in the messageSentHandler callback.
-    TC_KEY_REQUEST_POLICY = 0x05, // Controls whether the Trust Center will respond to Trust Center link key requests.
-    APP_KEY_REQUEST_POLICY = 0x06, // Controls whether the Trust Center will respond to application link key requests.
-    PACKET_VALIDATE_LIBRARY_POLICY = 0x07, // Controls whether ZigBee packets that appear invalid are automatically dropped by the stack. A counter will be incremented when this occurs.
-    ZLL_POLICY = 0x08, // Controls whether the stack will process ZLL messages.
-    TC_REJOINS_USING_WELL_KNOWN_KEY_POLICY = 0x09, // Controls whether Trust Center (insecure) rejoins for devices using the well-known link key are accepted. If rejoining using the well-known key is allowed, it is disabled again after sli_zigbee_allow_tc_rejoins_using_well_known_key_timeout_sec seconds.
+    TRUST_CENTER = 0x00, // Controls trust center behavior.
+    BINDING_MODIFICATION = 0x01, // Controls how external binding modification requests are handled.
+    UNICAST_REPLIES = 0x02, // Controls whether the Host supplies unicast replies.
+    POLL_HANDLER = 0x03, // Controls whether pollHandler callbacks are generated.
+    MESSAGE_CONTENTS_IN_CALLBACK = 0x04, // Controls whether the message contents are included in the messageSentHandler callback.
+    TC_KEY_REQUEST = 0x05, // Controls whether the Trust Center will respond to Trust Center link key requests.
+    APP_KEY_REQUEST = 0x06, // Controls whether the Trust Center will respond to application link key requests.
+    PACKET_VALIDATE_LIBRARY = 0x07, // Controls whether ZigBee packets that appear invalid are automatically dropped by the stack. A counter will be incremented when this occurs.
+    ZLL = 0x08, // Controls whether the stack will process ZLL messages.
+    TC_REJOINS_USING_WELL_KNOWN_KEY = 0x09, // Controls whether Trust Center (insecure) rejoins for devices using the well-known link key are accepted. If rejoining using the well-known key is allowed, it is disabled again after sli_zigbee_allow_tc_rejoins_using_well_known_key_timeout_sec seconds.
 }
 
 // This is the policy decision bitmask that controls the trust center decision strategies. The bitmask is modified and extracted from the EzspDecisionId for supporting bitmask operations.
@@ -1395,8 +1395,7 @@ struct EZSP_SetValue {
     enum ushort Command = 0x00AB;
     struct Request {
         EzspValueId valueId; // Identifies which value to change.
-        ubyte valueLength; // The length of the value parameter in bytes.
-        ubyte[] value; // The new value.
+        const(ubyte)[] value; // The new value.
     }
     struct Response {
         EzspStatus status;
@@ -1671,8 +1670,7 @@ struct EZSP_CustomFrameHandler {
     struct Request {
     }
     struct Response {
-        ubyte payloadLength; // The length of the custom frame payload.
-        ubyte[] payload; // The payload of the custom frame.
+        const(ubyte)[] payload; // The payload of the custom frame.
     }
 }
 
@@ -2626,8 +2624,7 @@ struct EZSP_MessageSentHandler {
         EmberApsFrame apsFrame; // The APS frame for the message.
         ubyte messageTag; // The value supplied by the Host in the ezspSendUnicast, ezspSendBroadcast or ezspSendMulticast command.
         EmberStatus status; // An EmberStatus value of EMBER_SUCCESS if an ACK was received from the destination or EMBER_DELIVERY_FAILED if no ACK was received.
-        ubyte messageLength; // The length of the messageContents parameter in bytes.
-        ubyte[] messageContents; // The unicast message supplied by the Host. The message contents are only included here if the decision for the messageContentsInCallback policy is messageTagAndContentsInCallback.
+        const(ubyte)[] message; // The unicast message supplied by the Host. The message contents are only included here if the decision for the messageContentsInCallback policy is messageTagAndContentsInCallback.
     }
 }
 
@@ -2704,8 +2701,7 @@ struct EZSP_IncomingMessageHandler {
         EmberNodeId sender; // The sender of the message.
         ubyte bindingIndex; // The index of a binding that matches the message or 0xFF if there is no matching binding.
         ubyte addressIndex; // The index of the entry in the address table that matches the sender of the message or 0xFF if there is no matching entry.
-        ubyte messageLength; // The length of the messageContents parameter in bytes.
-        ubyte[] messageContents; // The incoming message.
+        const(ubyte)[] message; // The incoming message.
     }
 }
 
@@ -2965,8 +2961,7 @@ struct EZSP_MacPassthroughMessageHandler {
         EmberMacPassthroughType messageType; // The type of MAC passthrough message received.
         ubyte lastHopLqi; // The link quality from the node that last relayed the message.
         int8s lastHopRssi; // The energy level (in units of dBm) observed during reception.
-        ubyte messageLength; // The length of the messageContents parameter in bytes.
-        ubyte[] messageContents; // The raw message that was received.
+        const(ubyte)[] message; // The raw message that was received.
     }
 }
 

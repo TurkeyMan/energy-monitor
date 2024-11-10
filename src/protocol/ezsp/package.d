@@ -45,16 +45,16 @@ size_t ezspSerialise(T)(ref T data, ubyte[] buffer)
 
     static if (is(T == struct))
     {
-        size_t length = 0;
-        static foreach(ref m; s.tupleof)
-        {
-            alias M = typeof(m);
-            size_t len = ezspSerialise(m, buffer[length..$]);
+        size_t bytes = 0;
+        alias members = data.tupleof;
+        static foreach(i; 0 .. members.length)
+        {{
+            size_t len = ezspSerialise(members[i], buffer[bytes..$]);
             if (len == 0)
                 return 0;
-            length += len;
-        }
-        return length;
+            bytes += len;
+        }}
+        return bytes;
     }
     else static if (is(T == ubyte[N], size_t N))
     {
@@ -62,6 +62,15 @@ size_t ezspSerialise(T)(ref T data, ubyte[] buffer)
             return 0;
         buffer[0 .. N] = data;
         return N;
+    }
+    else static if (is(T : const(ubyte)[]))
+    {
+        assert(data.length <= 255, "Data must be <= 255 bytes");
+        if (buffer.length < 1 + data.length)
+            return 0;
+        buffer[0] = cast(ubyte)data.length;
+        buffer[1 .. 1 + data.length] = data[];
+        return 1 + data.length;
     }
     else
     {
@@ -82,7 +91,7 @@ size_t ezspDeserialise(T)(const(ubyte)[] data, out T t)
         alias tup = t.tupleof;
         static foreach(i; 0..tup.length)
         {{
-            size_t took = data[offset..$].ezspDeserialise(tup[i]);
+            size_t took = data.ptr[offset..data.length].ezspDeserialise(tup[i]);
             if (took == 0)
                 return 0;
             offset += took;
@@ -93,14 +102,21 @@ size_t ezspDeserialise(T)(const(ubyte)[] data, out T t)
     {
         if (data.length < N)
             return 0;
-        t = data[0 .. N];
+        t = data.ptr[0 .. N];
         return N;
+    }
+    else static if (is(T : const(ubyte)[]))
+    {
+        if (data.length < 1 || data.length < 1 + data[0])
+            return 0;
+        t = (data.ptr + 1)[0 .. data[0]];
+        return 1 + t.length;
     }
     else
     {
         if (data.length < T.sizeof)
             return 0;
-        t = data[0 .. T.sizeof].littleEndianToNative!T;
+        t = data.ptr[0 .. T.sizeof].littleEndianToNative!T;
         return T.sizeof;
     }
 }
