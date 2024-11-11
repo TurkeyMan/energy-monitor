@@ -85,6 +85,9 @@
     <Filter Include="src\protocol\dns">
       <UniqueIdentifier>{6b327823-23d1-49dc-a514-342b020a2613}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\protocol\spinel">
+      <UniqueIdentifier>{fcdd9e88-513a-4859-a5da-665d1bee0704}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <DCompile Include="src\router\modbus\profile\solaredge_meter.d">
@@ -452,6 +455,12 @@
     </DCompile>
     <DCompile Include="src\urt\kvp.d">
       <Filter>src\urt</Filter>
+    </DCompile>
+    <DCompile Include="src\protocol\spinel\package.d">
+      <Filter>src\protocol\spinel</Filter>
+    </DCompile>
+    <DCompile Include="src\protocol\spinel\client.d">
+      <Filter>src\protocol\spinel</Filter>
     </DCompile>
   </ItemGroup>
   <ItemGroup>
