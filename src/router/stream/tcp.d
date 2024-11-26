@@ -339,7 +339,7 @@ class TCPServer
 
     alias NewConnection = void delegate(TCPStream client, void* userData) nothrow @nogc;
 
-    this(String name, ushort port, NewConnection callback, void* userData, ServerOptions options = ServerOptions.None) nothrow @nogc
+    this(String name, ushort port, NewConnection callback, void* userData = null, ServerOptions options = ServerOptions.None) nothrow @nogc
     {
         this.name = name.move;
         this.port = port;
