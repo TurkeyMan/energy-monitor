@@ -94,6 +94,12 @@
     <Filter Include="src\urt\range">
       <UniqueIdentifier>{14daa134-d1ed-4584-ac0e-ba1176386c0e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\apps">
+      <UniqueIdentifier>{8643bbe8-bb9e-448c-88a7-e8beae4c45e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\apps\energy">
+      <UniqueIdentifier>{64b88f6a-915f-4210-b838-b7905c8455ad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <DCompile Include="src\router\modbus\profile\solaredge_meter.d">
@@ -497,6 +503,21 @@
     </DCompile>
     <DCompile Include="src\urt\range\primitives.d">
       <Filter>src\urt\range</Filter>
+    </DCompile>
+    <DCompile Include="src\apps\energy\appliance.d">
+      <Filter>src\apps\energy</Filter>
+    </DCompile>
+    <DCompile Include="src\apps\energy\circuit.d">
+      <Filter>src\apps\energy</Filter>
+    </DCompile>
+    <DCompile Include="src\apps\energy\manager.d">
+      <Filter>src\apps\energy</Filter>
+    </DCompile>
+    <DCompile Include="src\apps\energy\meter.d">
+      <Filter>src\apps\energy</Filter>
+    </DCompile>
+    <DCompile Include="src\apps\energy\package.d">
+      <Filter>src\apps\energy</Filter>
     </DCompile>
     <DCompile Include="src\urt\system.d">
       <Filter>src\urt</Filter>
