@@ -165,9 +165,6 @@
     <DCompile Include="src\manager\package.d">
       <Filter>src\manager</Filter>
     </DCompile>
-    <DCompile Include="src\router\modbus\server.d">
-      <Filter>src\router\modbus</Filter>
-    </DCompile>
     <DCompile Include="src\router\goodwe\package.d">
       <Filter>src\router\goodwe</Filter>
     </DCompile>
