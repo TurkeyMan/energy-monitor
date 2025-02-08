@@ -11,7 +11,7 @@ SOURCES := $(shell find $(SRCDIR) -type f -name '*.d')
 DEPFILE := $(OBJDIR)/$(TARGETNAME).d
 
 ifeq ($(D_COMPILER),dmd)
-	DFLAGS := -I=$(SRCDIR)
+	DFLAGS := -I=$(SRCDIR) -preview=bitfields -preview=rvaluerefparam -preview=nosharedaccess -preview=in
 	ifeq ($(config),debug)
 		DFLAGS := $(DFLAGS) -g -debug
 	else
