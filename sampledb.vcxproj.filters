@@ -97,6 +97,9 @@
     <Filter Include="src\protocol\http">
       <UniqueIdentifier>{072e997d-5dcf-4378-947a-4a665e1fd242}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\urt\crypto">
+      <UniqueIdentifier>{aeb0c73e-df99-45b6-843e-64ff84d35cbe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <DCompile Include="src\router\modbus\profile\solaredge_meter.d">
@@ -503,6 +506,9 @@
     </DCompile>
     <DCompile Include="src\urt\range\primitives.d">
       <Filter>src\urt\range</Filter>
+    </DCompile>
+    <DCompile Include="src\urt\crypto\chacha.d">
+      <Filter>src\urt\crypto</Filter>
     </DCompile>
     <DCompile Include="src\urt\system.d">
       <Filter>src\urt</Filter>
