@@ -145,3 +145,24 @@ uint adler32(const void[] data)
 
     return (s2 << 16) | s1;
 }
+
+
+ushort internet_checksum(const void[] data, ushort initial = 0xFFFF)
+{
+    const(ubyte)* ptr = cast(ubyte*)data.ptr;
+    size_t len = data.length;
+
+    uint sum = ~initial;
+    while (len > 1)
+    {
+        sum += (ptr[0] << 8) | ptr[1];
+        ptr += 2, len -= 2;
+    }
+    if (len > 0)
+        sum += ptr[0] << 8;
+
+    while (sum >> 16)
+        sum = (sum & 0xFFFF) + (sum >> 16);
+
+    return cast(ushort)~sum;
+}
