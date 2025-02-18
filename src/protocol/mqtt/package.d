@@ -10,36 +10,31 @@ import protocol.mqtt.broker;
 
 nothrow @nogc:
 
-class MQTTModule : Plugin
+class MQTTModule : Module
 {
-    mixin RegisterModule!"mqtt";
+    mixin DeclareModule!"mqtt";
+nothrow @nogc:
 
-    class Instance : Plugin.Instance
+    MQTTBroker broker;
+
+    override void init()
     {
-        mixin DeclareInstance;
-    nothrow @nogc:
+        app.console.registerCommand!broker_add("/protocol/mqtt/broker", this, "add");
+    }
 
-        MQTTBroker broker;
+    override void update()
+    {
+        if (broker)
+            broker.update();
+    }
 
-        override void init()
-        {
-            app.console.registerCommand!broker_add("/protocol/mqtt/broker", this, "add");
-        }
+    void broker_add(Session session, ushort listen_port, const(char)[] username, const(char)[] password)
+    {
+        MQTTBrokerOptions options;
+        options.port = listen_port;
+        options.clientCredentials ~= MQTTClientCredentials(username: username.makeString(defaultAllocator()), password: password.makeString(defaultAllocator()));
 
-        override void update()
-        {
-            if (broker)
-                broker.update();
-        }
-
-        void broker_add(Session session, ushort listen_port, const(char)[] username, const(char)[] password)
-        {
-            MQTTBrokerOptions options;
-            options.port = listen_port;
-            options.clientCredentials ~= MQTTClientCredentials(username: username.makeString(defaultAllocator()), password: password.makeString(defaultAllocator()));
-
-            broker = app.allocator.allocT!MQTTBroker(options);
-        }
+        broker = app.allocator.allocT!MQTTBroker(options);
     }
 }
 
