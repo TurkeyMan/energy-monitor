@@ -301,7 +301,7 @@ else version(Posix)
     import core.sys.posix.termios;
     import core.sys.posix.unistd;
     import core.sys.posix.fcntl;
-    import core.stdc.stdint : ptrdiff_t;
+    import core.sys.posix.sys.types;
     import std.string : toStringz;
 
     class SerialStream : Stream
@@ -361,13 +361,13 @@ else version(Posix)
             fd = -1;
         }
 
-        override ptrdiff_t read(ubyte[] buffer)
+        override ptrdiff_t read(void[] buffer)
         {
             ssize_t bytesRead = read(fd, buffer.ptr, buffer.length);
             return bytesRead;
         }
 
-        override ptrdiff_t write(const ubyte[] data)
+        override ptrdiff_t write(const void[] data)
         {
             ssize_t bytesWritten = write(fd, buffer.ptr, buffer.length);
             return bytesWritten;

@@ -19,6 +19,16 @@ version(Windows)
     enum FILE_NAME_OPENED = 0x8;
     extern(C) { nothrow @nogc: int GetFinalPathNameByHandleW(void *hFile, wchar *lpszFilePath, uint cchFilePath, uint dwFlags); }
 }
+else version (linux)
+{
+    import core.sys.posix.unistd;
+    import core.sys.posix.fcntl;
+    import core.sys.posix.sys.stat;
+    import core.sys.posix.stdlib;
+    import core.sys.posix.dirent;
+    import core.stdc.errno;
+    import urt.string : tstringz;
+}
 else
 {
     static assert(0, "Not implemented");
@@ -80,6 +90,8 @@ struct File
 {
     version (Windows)
         void* handle = INVALID_HANDLE_VALUE;
+    else version (linux)
+        int fd = -1;
     else
         static assert(0, "Not implemented");
 }
@@ -91,6 +103,11 @@ bool file_exists(const(char)[] path)
         DWORD attr = GetFileAttributesW(path.twstringz);
         return attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY);
     }
+    else version (linux)
+    {
+        stat st;
+        return stat(path.tstringz, &st) == 0 && !S_ISDIR(st.st_mode);
+    }
     else
         static assert(0, "Not implemented");
 }
@@ -101,6 +118,12 @@ Result delete_file(const(char)[] path)
     {
         if (!DeleteFileW(path.twstringz))
             return Win32Result(GetLastError());
+    }
+    else version (linux)
+    {
+        if (unlink(path.tstringz) == -1)
+            return PosixResult(errno);
+        return Result.Success;
     }
     else
         static assert(0, "Not implemented");
@@ -571,6 +594,11 @@ Result get_temp_filename(ref char[] buffer, const(char)[] dstDir, const(char)[] 
 version (Windows)
 {
     Result Win32Result(uint err)
+        => Result(err);
+}
+else version (linux)
+{
+    Result PosixResult(int err)
         => Result(err);
 }
 
