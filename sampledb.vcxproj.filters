@@ -189,9 +189,6 @@
     <DCompile Include="src\manager\package.d">
       <Filter>src\manager</Filter>
     </DCompile>
-    <DCompile Include="src\router\modbus\server.d">
-      <Filter>src\router\modbus</Filter>
-    </DCompile>
     <DCompile Include="src\router\goodwe\package.d">
       <Filter>src\router\goodwe</Filter>
     </DCompile>
@@ -369,9 +366,6 @@
     <DCompile Include="src\protocol\modbus\client.d">
       <Filter>src\protocol\modbus</Filter>
     </DCompile>
-    <DCompile Include="src\protocol\modbus\server.d">
-      <Filter>src\protocol\modbus</Filter>
-    </DCompile>
     <DCompile Include="src\protocol\snmp\package.d">
       <Filter>src\protocol\snmp</Filter>
     </DCompile>
@@ -462,6 +456,9 @@
     <DCompile Include="src\router\iface\zigbee.d">
       <Filter>src\router\iface</Filter>
     </DCompile>
+    <DCompile Include="src\router\iface\can.d">
+      <Filter>src\router\iface</Filter>
+    </DCompile>
     <DCompile Include="src\urt\crc.d">
       <Filter>src\urt</Filter>
     </DCompile>
@@ -530,6 +527,9 @@
     </DCompile>
     <DCompile Include="src\urt\system.d">
       <Filter>src\urt</Filter>
+    </DCompile>
+    <DCompile Include="src\manager\pcap.d">
+      <Filter>src\manager</Filter>
     </DCompile>
   </ItemGroup>
   <ItemGroup>
