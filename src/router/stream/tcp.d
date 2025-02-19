@@ -36,7 +36,7 @@ nothrow @nogc:
             assert(0);
         }
         remote = addrInfo.address;
-        status.linkStatusChangeTime = getTime();
+        status.linkStatusChangeTime = getSysTime();
         update();
     }
 
@@ -45,13 +45,13 @@ nothrow @nogc:
         super(name.move, "tcp-client", options);
 
         remote = address;
-        status.linkStatusChangeTime = getTime();
+        status.linkStatusChangeTime = getSysTime();
         update();
     }
 
     override bool connect()
     {
-        lastRetry = MonoTime();
+        lastRetry = SysTime();
         update();
         return true;
     }
@@ -200,7 +200,7 @@ nothrow @nogc:
             return;
         }
 
-        MonoTime now = getTime();
+        SysTime now = getSysTime();
 
         // if the socket is invalid, we'll attempt to initiate a connection...
         if (socket == Socket.invalid)
@@ -297,7 +297,7 @@ nothrow @nogc:
         socket = Socket.invalid;
         live = false;
         status.linkStatus = false;
-        status.linkStatusChangeTime = getTime();
+        status.linkStatusChangeTime = getSysTime();
         ++status.linkDowns;
 
         writeWarning("TCP stream '", name, "' link down.");
@@ -308,7 +308,7 @@ nothrow @nogc:
 //private:
     InetAddress remote;
     Socket socket;
-    MonoTime lastRetry;
+    SysTime lastRetry;
 //    TCPServer reverseConnectServer;
 
     bool keepEnable = false;
@@ -339,7 +339,7 @@ class TCPServer
 
     alias NewConnection = void delegate(TCPStream client, void* userData) nothrow @nogc;
 
-    this(String name, ushort port, NewConnection callback, void* userData, ServerOptions options = ServerOptions.None) nothrow @nogc
+    this(String name, ushort port, NewConnection callback, void* userData = null, ServerOptions options = ServerOptions.None) nothrow @nogc
     {
         this.name = name.move;
         this.port = port;
@@ -434,59 +434,50 @@ private:
 }
 
 
-class TCPStreamModule : Plugin
+class TCPStreamModule : Module
 {
-    mixin RegisterModule!"stream.tcp";
+    mixin DeclareModule!"stream.tcp";
+nothrow @nogc:
 
     override void init()
     {
+        app.console.registerCommand!add("/stream/tcp-client", this);
     }
 
-    class Instance : Plugin.Instance
+    void add(Session session, const(char)[] name, const(char)[] address, Nullable!int port)
     {
-        mixin DeclareInstance;
-    nothrow @nogc:
+        auto mod_stream = app.moduleInstance!StreamModule;
 
-        override void init()
+        if (name.empty)
+            mod_stream.generateStreamName("tcp-stream");
+
+        const(char)[] portSuffix = address;
+        address = portSuffix.split!':';
+        size_t portNumber = 0;
+
+        if (port)
         {
-            app.console.registerCommand!add("/stream/tcp-client", this);
+            if (portSuffix)
+                return session.writeLine("Port specified twice");
+            portNumber = port.value;
         }
 
-        void add(Session session, const(char)[] name, const(char)[] address, Nullable!int port)
+        size_t taken;
+        if (!port)
         {
-            auto mod_stream = app.moduleInstance!StreamModule;
-
-            if (name.empty)
-                mod_stream.generateStreamName("tcp-stream");
-
-            const(char)[] portSuffix = address;
-            address = portSuffix.split!':';
-            size_t portNumber = 0;
-
-            if (port)
-            {
-                if (portSuffix)
-                    return session.writeLine("Port specified twice");
-                portNumber = port.value;
-            }
-
-            size_t taken;
-            if (!port)
-            {
-                portNumber = cast(size_t)portSuffix.parseInt(&taken);
-                if (taken == 0)
-                    return session.writeLine("Port must be numeric: ", portSuffix);
-            }
-            if (portNumber - 1 > ushort.max - 1)
-                return session.writeLine("Invalid port number (1-65535): ", portNumber);
-
-            String n = name.makeString(app.allocator);
-            String a = address.makeString(app.allocator);
-
-            TCPStream stream = app.allocator.allocT!TCPStream(n.move, a.move, cast(ushort)portNumber, StreamOptions.NonBlocking | StreamOptions.KeepAlive);
-            mod_stream.addStream(stream);
-
-            writeInfof("Create TCP stream '{0}' - server: [{1}]:{2}", name, address, portNumber);
+            portNumber = cast(size_t)portSuffix.parseInt(&taken);
+            if (taken == 0)
+                return session.writeLine("Port must be numeric: ", portSuffix);
         }
+        if (portNumber - 1 > ushort.max - 1)
+            return session.writeLine("Invalid port number (1-65535): ", portNumber);
+
+        String n = name.makeString(app.allocator);
+        String a = address.makeString(app.allocator);
+
+        TCPStream stream = app.allocator.allocT!TCPStream(n.move, a.move, cast(ushort)portNumber, StreamOptions.NonBlocking | StreamOptions.KeepAlive);
+        mod_stream.addStream(stream);
+
+        writeInfof("Create TCP stream '{0}' - server: [{1}]:{2}", name, address, portNumber);
     }
 }

@@ -43,6 +43,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <DCompile Include="src\apps\energy\appliance.d" />
+    <DCompile Include="src\apps\energy\circuit.d" />
+    <DCompile Include="src\apps\energy\manager.d" />
+    <DCompile Include="src\apps\energy\meter.d" />
+    <DCompile Include="src\apps\energy\package.d" />
     <DCompile Include="src\db\package.d" />
     <DCompile Include="src\db\selfrefptr.d" />
     <DCompile Include="src\db\stream.d" />
@@ -59,9 +64,9 @@
     <DCompile Include="src\manager\console\session.d" />
     <DCompile Include="src\manager\device.d" />
     <DCompile Include="src\manager\element.d" />
-    <DCompile Include="src\manager\instance.d" />
     <DCompile Include="src\manager\log.d" />
     <DCompile Include="src\manager\package.d" />
+    <DCompile Include="src\manager\pcap.d" />
     <DCompile Include="src\manager\plugin.d" />
     <DCompile Include="src\manager\sampler.d" />
     <DCompile Include="src\manager\subscriber.d" />
@@ -75,15 +80,19 @@
     <DCompile Include="src\protocol\ezsp\client.d" />
     <DCompile Include="src\protocol\ezsp\commands.d" />
     <DCompile Include="src\protocol\ezsp\package.d" />
+    <DCompile Include="src\protocol\http\client.d" />
+    <DCompile Include="src\protocol\http\package.d" />
     <DCompile Include="src\protocol\modbus\client.d" />
     <DCompile Include="src\protocol\modbus\package.d" />
     <DCompile Include="src\protocol\modbus\sampler.d" />
-    <DCompile Include="src\protocol\modbus\server.d" />
     <DCompile Include="src\protocol\mqtt\broker.d" />
     <DCompile Include="src\protocol\mqtt\client.d" />
     <DCompile Include="src\protocol\mqtt\package.d" />
     <DCompile Include="src\protocol\mqtt\util.d" />
+    <DCompile Include="src\protocol\package.d" />
     <DCompile Include="src\protocol\snmp\package.d" />
+    <DCompile Include="src\protocol\spinel\client.d" />
+    <DCompile Include="src\protocol\spinel\package.d" />
     <DCompile Include="src\protocol\telnet\package.d" />
     <DCompile Include="src\protocol\telnet\server.d" />
     <DCompile Include="src\protocol\telnet\session.d" />
@@ -97,6 +106,7 @@
     <DCompile Include="src\router\goodwe\aa55.d" />
     <DCompile Include="src\router\goodwe\package.d" />
     <DCompile Include="src\router\iface\bridge.d" />
+    <DCompile Include="src\router\iface\can.d" />
     <DCompile Include="src\router\iface\mac.d" />
     <DCompile Include="src\router\iface\modbus.d" />
     <DCompile Include="src\router\iface\package.d" />
@@ -110,7 +120,6 @@
     <DCompile Include="src\router\modbus\profile\goodwe_inverter.d" />
     <DCompile Include="src\router\modbus\profile\package.d" />
     <DCompile Include="src\router\modbus\profile\solaredge_meter.d" />
-    <DCompile Include="src\router\modbus\server.d" />
     <DCompile Include="src\router\port\package.d" />
     <DCompile Include="src\router\port\serial.d" />
     <DCompile Include="src\router\stream\bridge.d" />
@@ -181,6 +190,16 @@
   <ItemGroup>
     <None Include=".editorconfig" />
     <None Include=".gitignore" />
+    <None Include="conf\modbus_profiles\eastron_sdm120.conf" />
+    <None Include="conf\modbus_profiles\eastron_sdm630.conf" />
+    <None Include="conf\modbus_profiles\gm1000.conf" />
+    <None Include="conf\modbus_profiles\goodwe_ems.conf" />
+    <None Include="conf\modbus_profiles\pace_bms.conf" />
+    <None Include="conf\modbus_profiles\se_meter.conf" />
+    <None Include="conf\modbus_profiles\smartevse.conf" />
+    <None Include="conf\modbus_profiles\tac1100.conf" />
+    <None Include="conf\rest_profiles\smartevse.conf" />
+    <None Include="conf\startup.conf" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E12D037A-40C8-4F1B-B8B3-DE527A1E9D41}</ProjectGuid>

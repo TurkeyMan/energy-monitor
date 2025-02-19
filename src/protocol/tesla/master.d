@@ -116,7 +116,7 @@ nothrow @nogc:
         }
     }
 
-    TeslaProtocolModule.Instance m;
+    TeslaProtocolModule m;
 
     String name;
     BaseInterface iface;
@@ -132,7 +132,7 @@ nothrow @nogc:
     Array!Charger chargers;
 
 
-    this(TeslaProtocolModule.Instance m, String name, BaseInterface iface)
+    this(TeslaProtocolModule m, String name, BaseInterface iface)
     {
         this.name = name.move;
         this.iface = iface;
@@ -324,7 +324,7 @@ nothrow @nogc:
         iface.send(c.mac, message[], EtherType.ENMS, ENMS_SubType.TeslaTWC);
     }
 
-    void incomingPacket(ref const Packet p, BaseInterface iface, void* userData) nothrow @nogc
+    void incomingPacket(ref const Packet p, BaseInterface iface, PacketDirection dir, void* userData) nothrow @nogc
     {
         TWCMessage msg;
         if (parseTWCMessage(cast(ubyte[])p.data, msg))

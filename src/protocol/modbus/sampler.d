@@ -170,10 +170,10 @@ private:
         ubyte type;
         ubyte flags; // 1 - in-flight, 2 - constant-sampled, 4 - ...
         ushort sampleTimeMs;
-        MonoTime lastUpdate;
+        SysTime lastUpdate;
     }
 
-    void responseHandler(ref const ModbusPDU request, ref ModbusPDU response, MonoTime requestTime, MonoTime responseTime)
+    void responseHandler(ref const ModbusPDU request, ref ModbusPDU response, SysTime requestTime, SysTime responseTime)
     {
         ubyte kind = request.functionCode == FunctionCode.ReadHoldingRegisters ? 4 :
                      request.functionCode == FunctionCode.ReadInputRegisters ? 3 :
@@ -223,8 +223,6 @@ private:
                 if (e.sampleTimeMs == 0)
                     e.flags |= 2;
             }
-//            else version (DebugModbusSampler)
-//                writeDebugf("Got reg {0, 04x}: {1} ", e.register, e.element.id);
 
             // parse value from the response...
             ushort offset = cast(ushort)(e.register - first);
@@ -345,10 +343,13 @@ private:
                         break;
                 }
             }
+
+            version (DebugModbusSampler)
+                writeDebugf("Got reg {0, 04x}: {1} = {2}", e.register, e.element.id, e.element.value);
         }
     }
 
-    void errorHandler(ModbusErrorType errorType, ref const ModbusPDU request, MonoTime requestTime)
+    void errorHandler(ModbusErrorType errorType, ref const ModbusPDU request, SysTime requestTime)
     {
         ubyte kind = request.functionCode == FunctionCode.ReadHoldingRegisters ? 4 :
                      request.functionCode == FunctionCode.ReadInputRegisters ? 3 :
@@ -376,7 +377,7 @@ private:
         }
     }
 
-    void snoopHandler(ref const MACAddress server, ref const ModbusPDU request, ref ModbusPDU response, MonoTime requestTime, MonoTime responseTime)
+    void snoopHandler(ref const MACAddress server, ref const ModbusPDU request, ref ModbusPDU response, SysTime requestTime, SysTime responseTime)
     {
         // check it's a response from the server we're interested in
         if (server != this.server)

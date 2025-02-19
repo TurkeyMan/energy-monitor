@@ -1,6 +1,7 @@
 module router.iface.zigbee;
 
 import urt.lifetime;
+import urt.meta.nullable;
 import urt.string;
 
 import manager.plugin;
@@ -18,17 +19,20 @@ class ZigbeeInterface : BaseInterface
 {
 nothrow @nogc:
 
+    alias TypeName = StringLit!"zigbee";
 
-    this(InterfaceModule.Instance m, String name) nothrow @nogc
+    ubyte[8] eui;
+
+    this(InterfaceModule m, String name) nothrow @nogc
     {
-        super(m, name.move, StringLit!"zigbee");
+        super(m, name.move, TypeName);
     }
 
     override void update()
     {
     }
 
-    override bool forward(ref const Packet packet) nothrow @nogc
+    protected override bool transmit(ref const Packet packet) nothrow @nogc
     {
         // can only handle zigbee packets
         if (packet.etherType != EtherType.ENMS || packet.etherSubType != ENMS_SubType.Zigbee || packet.data.length < 3)
@@ -45,49 +49,38 @@ private:
 }
 
 
-class ZigbeeInterfaceModule : Plugin
+class ZigbeeInterfaceModule : Module
 {
-    mixin RegisterModule!"interface.zigbee";
+    mixin DeclareModule!"interface.zigbee";
+nothrow @nogc:
 
-    class Instance : Plugin.Instance
+    override void init()
     {
-        mixin DeclareInstance;
-    nothrow @nogc:
+        app.console.registerCommand!add("/interface/zigbee", this);
+    }
 
-        override void init()
+    // /interface/zigbee/add command
+    // TODO: protocol enum!
+    void add(Session session, const(char)[] name, const(char)[] ezsp_client, Nullable!(const(char)[]) pcap)
+    {
+        // TODO: EZSP might not be the only hardware interface...
+        assert(ezsp_client, "'ezsp_client' must be specified");
+
+        EZSPClient c = app.moduleInstance!EZSPProtocolModule.getClient(ezsp_client);
+        if (!c)
         {
-            app.console.registerCommand!add("/interface/zigbee", this);
+            session.writeLine("EZSP client does not exist: ", ezsp_client);
+            return;
         }
 
-        import urt.meta.nullable;
+        auto mod_if = app.moduleInstance!InterfaceModule;
+        String n = mod_if.addInterfaceName(session, name, ZigbeeInterface.TypeName);
+        if (!n)
+            return;
 
-        // /interface/zigbee/add command
-        // TODO: protocol enum!
-        void add(Session session, const(char)[] name, const(char)[] ezsp_client)
-        {
-            // TODO: EZSP might not be the only hardware interface...
-            assert(ezsp_client, "'ezsp_client' must be specified");
+        ZigbeeInterface iface = app.allocator.allocT!ZigbeeInterface(mod_if, n.move);
 
-            EZSPClient c = app.moduleInstance!EZSPProtocolModule.getClient(ezsp_client);
-            if (!c)
-            {
-                session.writeLine("EZSP client does not exist: ", ezsp_client);
-                return;
-            }
-
-            auto mod_if = app.moduleInstance!InterfaceModule;
-
-            if (name.empty)
-                name = mod_if.generateInterfaceName("zigbee");
-            String n = name.makeString(app.allocator);
-
-            ZigbeeInterface iface = app.allocator.allocT!ZigbeeInterface(mod_if, n.move);
-            mod_if.addInterface(iface);
-
-            import urt.log;
-            writeInfo("Create zigbee interface '", name, "' - ", iface.mac);
-        }
-
+        mod_if.addInterface(session, iface, pcap ? pcap.value : null);
     }
 }
 

@@ -3,12 +3,12 @@ module router.iface.tesla;
 import urt.log;
 import urt.map;
 import urt.mem;
+import urt.meta.nullable;
 import urt.string;
 import urt.string.format;
 import urt.time;
 
 import manager.console;
-import manager.instance;
 import manager.plugin;
 
 import protocol.tesla.twc;
@@ -34,17 +34,19 @@ class TeslaInterface : BaseInterface
 {
 nothrow @nogc:
 
+    alias TypeName = StringLit!"tesla-twc";
+
     Stream stream;
 
-    this(InterfaceModule.Instance m, String name, Stream stream) nothrow @nogc
+    this(InterfaceModule m, String name, Stream stream) nothrow @nogc
     {
-        super(m, name, StringLit!"tesla-twc");
+        super(m, name, TypeName);
         this.stream = stream;
     }
 
     override void update()
     {
-        MonoTime now = getTime();
+        SysTime now = getSysTime();
 
         // check the link status
         bool isConnected = stream.connected();
@@ -115,7 +117,7 @@ nothrow @nogc:
         }
     }
 
-    override bool forward(ref const Packet packet) nothrow @nogc
+    protected override bool transmit(ref const Packet packet) nothrow @nogc
     {
         if (packet.etherType != EtherType.ENMS || packet.etherSubType != ENMS_SubType.TeslaTWC)
         {
@@ -174,7 +176,7 @@ nothrow @nogc:
 
 private:
 
-    final void incomingPacket(const(ubyte)[] msg, MonoTime recvTime)
+    final void incomingPacket(const(ubyte)[] msg, SysTime recvTime)
     {
         // we need to extract the sender/receiver addresses...
         TWCMessage message;
@@ -214,105 +216,99 @@ private:
 }
 
 
-class TeslaInterfaceModule : Plugin
+class TeslaInterfaceModule : Module
 {
-    mixin RegisterModule!"interface.tesla-twc";
+    mixin DeclareModule!"interface.tesla-twc";
+nothrow @nogc:
 
-    class Instance : Plugin.Instance
+    Map!(ushort, DeviceMap) devices;
+
+    override void init()
     {
-        mixin DeclareInstance;
-    nothrow @nogc:
+        app.console.registerCommand!add("/interface/tesla-twc", this);
+    }
 
-        Map!(ushort, DeviceMap) devices;
-
-        override void init()
+    void add(Session session, const(char)[] name, const(char)[] stream, Nullable!(const(char)[]) pcap)
+    {
+        Stream s = app.moduleInstance!StreamModule.getStream(stream);
+        if (!s)
         {
-            app.console.registerCommand!add("/interface/tesla-twc", this);
+            session.writeLine("Stream does not exist: ", stream);
+            return;
         }
 
-        void add(Session session, const(char)[] name, const(char)[] stream)
+        auto mod_if = app.moduleInstance!InterfaceModule;
+        String n = mod_if.addInterfaceName(session, name, TeslaInterface.TypeName);
+        if (!n)
+            return;
+
+        TeslaInterface iface = defaultAllocator.allocT!TeslaInterface(mod_if, n.move, s);
+
+        mod_if.addInterface(session, iface, pcap ? pcap.value : null);
+
+        version (DebugTeslaInterface)
         {
-            Stream s = app.moduleInstance!StreamModule.getStream(stream);
-            if (!s)
-            {
-                session.writeLine("Stream does not exist: ", stream);
-                return;
-            }
-
-            if (name.empty)
-                name = app.moduleInstance!InterfaceModule.generateInterfaceName("tesla-twc");
-            String n = name.makeString(defaultAllocator());
-
-            TeslaInterface iface = defaultAllocator.allocT!TeslaInterface(app.moduleInstance!InterfaceModule, n.move, s);
-            app.moduleInstance!InterfaceModule().addInterface(iface);
-
-            import urt.log;
-            writeInfo("Create tesla-twc interface '", name, "' - ", iface.mac);
-
-            version (DebugTeslaInterface)
-            {
-                // HACK: we'll print packets that we receive...
-                iface.subscribe((ref const Packet p, BaseInterface i, void* u) {
-                    import urt.io;
-                    writef("{4} - {0}: TWC packet recv {2}<--{1} [{3}]\n", i.name, p.src, p.dst, p.data, p.creationTime);
-                }, PacketFilter(etherType: EtherType.ENMS, enmsSubType: ENMS_SubType.TeslaTWC));
-            }
+            // HACK: we'll print packets that we receive...
+            iface.subscribe((ref const Packet p, BaseInterface i, void* u) {
+                import urt.io;
+                writef("{4} - {0}: TWC packet recv {2}<--{1} [{3}]\n", i.name, p.src, p.dst, p.data, p.creationTime);
+            }, PacketFilter(etherType: EtherType.ENMS, enmsSubType: ENMS_SubType.TeslaTWC));
         }
+    }
 
 
-        DeviceMap* findServerByName(const(char)[] name)
+    DeviceMap* findServerByName(const(char)[] name)
+    {
+        foreach (ref map; devices)
         {
-            foreach (ref map; devices)
-            {
-                if (map.name[] == name[])
-                    return &map;
-            }
-            return null;
+            if (map.name[] == name[])
+                return &map;
         }
+        return null;
+    }
 
-        DeviceMap* findServerByMac(MACAddress mac)
+    DeviceMap* findServerByMac(MACAddress mac)
+    {
+        foreach (ref map; devices)
         {
-            foreach (ref map; devices)
-            {
-                if (map.mac == mac)
-                    return &map;
-            }
-            return null;
+            if (map.mac == mac)
+                return &map;
         }
+        return null;
+    }
 
-        DeviceMap* findServerByAddress(ushort address)
-        {
-            return address in devices;
-        }
+    DeviceMap* findServerByAddress(ushort address)
+    {
+        return address in devices;
+    }
 
-        DeviceMap* addDevice(const(char)[] name, TeslaInterface iface, ushort address)
-        {
-            if (!name)
-                name = tformat("{0}.{1,04X}", iface.name[], address);
+    DeviceMap* addDevice(const(char)[] name, TeslaInterface iface, ushort address)
+    {
+        if (!name)
+            name = tformat("{0}.{1,04X}", iface.name[], address);
 
-            DeviceMap map;
-            map.name = name.makeString(defaultAllocator());
-            map.address = address;
-            map.mac = iface.generateMacAddress();
-            map.mac.b[4] = address >> 8;
-            map.mac.b[5] = address & 0xFF;
-//            while (findMacAddress(map.mac) !is null)
-//                ++map.mac.b[5];
-            map.iface = iface;
+        DeviceMap map;
+        map.name = name.makeString(defaultAllocator());
+        map.address = address;
+        map.mac = iface.generateMacAddress();
+        map.mac.b[4] = address >> 8;
+        map.mac.b[5] = address & 0xFF;
+//        while (findMacAddress(map.mac) !is null)
+//            ++map.mac.b[5];
+        map.iface = iface;
 
-            iface.addAddress(map.mac, iface);
-            return devices.insert(address, map);
-        }
+        iface.addAddress(map.mac, iface);
+        return devices.insert(address, map);
+    }
 
-        DeviceMap* addServer(const(char)[] name, BaseInterface iface, ushort address)
-        {
-            DeviceMap map;
-            map.name = name.makeString(defaultAllocator());
-            map.address = address;
-            map.mac = iface.mac;
-//            map.iface = iface;
-            return devices.insert(address, map);
-        }
+    DeviceMap* addServer(const(char)[] name, BaseInterface iface, ushort address)
+    {
+        DeviceMap map;
+        map.name = name.makeString(defaultAllocator());
+        map.address = address;
+        map.mac = iface.mac;
+//        map.iface = iface;
+        return devices.insert(address, map);
     }
 }
 
