@@ -62,6 +62,7 @@
     <DCompile Include="src\manager\instance.d" />
     <DCompile Include="src\manager\log.d" />
     <DCompile Include="src\manager\package.d" />
+    <DCompile Include="src\manager\pcap.d" />
     <DCompile Include="src\manager\plugin.d" />
     <DCompile Include="src\manager\sampler.d" />
     <DCompile Include="src\manager\subscriber.d" />
@@ -78,7 +79,6 @@
     <DCompile Include="src\protocol\modbus\client.d" />
     <DCompile Include="src\protocol\modbus\package.d" />
     <DCompile Include="src\protocol\modbus\sampler.d" />
-    <DCompile Include="src\protocol\modbus\server.d" />
     <DCompile Include="src\protocol\mqtt\broker.d" />
     <DCompile Include="src\protocol\mqtt\client.d" />
     <DCompile Include="src\protocol\mqtt\package.d" />
@@ -97,6 +97,7 @@
     <DCompile Include="src\router\goodwe\aa55.d" />
     <DCompile Include="src\router\goodwe\package.d" />
     <DCompile Include="src\router\iface\bridge.d" />
+    <DCompile Include="src\router\iface\can.d" />
     <DCompile Include="src\router\iface\mac.d" />
     <DCompile Include="src\router\iface\modbus.d" />
     <DCompile Include="src\router\iface\package.d" />
@@ -110,7 +111,6 @@
     <DCompile Include="src\router\modbus\profile\goodwe_inverter.d" />
     <DCompile Include="src\router\modbus\profile\package.d" />
     <DCompile Include="src\router\modbus\profile\solaredge_meter.d" />
-    <DCompile Include="src\router\modbus\server.d" />
     <DCompile Include="src\router\port\package.d" />
     <DCompile Include="src\router\port\serial.d" />
     <DCompile Include="src\router\stream\bridge.d" />
