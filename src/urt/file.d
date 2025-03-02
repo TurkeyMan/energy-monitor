@@ -105,7 +105,8 @@ bool file_exists(const(char)[] path)
     }
     else version (linux)
     {
-        stat st;
+        import core.sys.posix.sys.stat;
+        stat_t st;
         return stat(path.tstringz, &st) == 0 && !S_ISDIR(st.st_mode);
     }
     else
@@ -138,6 +139,12 @@ Result rename_file(const(char)[] oldPath, const(char)[] newPath)
         if (!MoveFileW(oldPath.twstringz, newPath.twstringz))
             return Win32Result(GetLastError());
     }
+    else version (linux)
+	{
+        import core.sys.posix.stdio;
+		if (int result = rename(oldPath.tstringz, newPath.tstringz)!= 0)
+           return PosixResult(result);
+	}
     else
         static assert(0, "Not implemented");
 
@@ -151,6 +158,11 @@ Result copy_file(const(char)[] oldPath, const(char)[] newPath, bool overwriteExi
         if (!CopyFileW(oldPath.twstringz, newPath.twstringz, !overwriteExisting))
             return Win32Result(GetLastError());
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 
@@ -178,6 +190,11 @@ Result get_path(ref const File file, ref char[] buffer)
             buffer = buffer[0..pathLen];
         return Result.Success;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 
@@ -211,6 +228,11 @@ Result get_file_attributes(const(char)[] path, out FileAttributes outAttributes)
         outAttributes.accessTime = SysTime(cast(ulong)attrData.ftLastAccessTime.dwHighDateTime << 32 | attrData.ftLastAccessTime.dwLowDateTime);
         outAttributes.writeTime = SysTime(cast(ulong)attrData.ftLastWriteTime.dwHighDateTime << 32 | attrData.ftLastWriteTime.dwLowDateTime);
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 
@@ -250,6 +272,11 @@ Result get_attributes(ref const File file, out FileAttributes outAttributes)
         return Result.Success;
 +/
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 
@@ -338,13 +365,27 @@ Result open(ref File file, const(char)[] path, FileOpenMode mode, FileOpenFlags 
 
         return Result.Success;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
 
 bool is_open(ref const File file)
 {
-    return file.handle != INVALID_HANDLE_VALUE;
+	version (Windows)
+    {
+	    return file.handle != INVALID_HANDLE_VALUE;
+    }
+    else version (linux)
+	{
+		return file.fd != -1;
+    }
+    else
+        static assert(0, "Not implemented");
 }
 
 void close(ref File file)
@@ -357,6 +398,11 @@ void close(ref File file)
             file.handle = INVALID_HANDLE_VALUE;
         }
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
@@ -370,6 +416,11 @@ ulong get_size(ref const File file)
             return 0;
         return fileSize.QuadPart;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
@@ -416,7 +467,12 @@ Result set_size(ref File file, ulong size)
 
         return Result.Success;
     }
-    else
+	else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
+	else
         static assert(0, "Not implemented");
 }
 
@@ -430,6 +486,11 @@ ulong get_pos(ref const File file)
         SetFilePointerEx(cast(HANDLE)file.handle, liDistanceToMove, &liResult, FILE_CURRENT);
         return liResult.QuadPart;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
@@ -444,6 +505,11 @@ Result set_pos(ref File file, ulong offset)
             return Win32Result(GetLastError());
         return Result.Success;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
@@ -464,6 +530,11 @@ Result read(ref File file, void[] buffer, out size_t bytesRead)
         bytesRead = dwBytesRead;
         return Result.Success;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
@@ -491,6 +562,11 @@ Result read_at(ref File file, void[] buffer, ulong offset, out size_t bytesRead)
         bytesRead = dwBytesRead;
         return Result.Success;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
@@ -508,6 +584,11 @@ Result write(ref File file, const(void)[] data, out size_t bytesWritten)
         bytesWritten = dwBytesWritten;
         return Result.Success;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
@@ -532,6 +613,11 @@ Result write_at(ref File file, const(void)[] data, ulong offset, out size_t byte
         bytesWritten = dwBytesWritten;
         return Result.Success;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
@@ -544,6 +630,11 @@ Result flush(ref File file)
             return Win32Result(GetLastError());
         return Result.Success;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
@@ -564,7 +655,12 @@ FileResult get_FileResult(Result result)
             default:                    return FileResult.Failure;
         }
     }
-    else
+	else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
+	else
         static assert(0, "Not implemented");
 }
 
@@ -587,6 +683,11 @@ Result get_temp_filename(ref char[] buffer, const(char)[] dstDir, const(char)[] 
         buffer = buffer[0 .. resLen];
         return Result.Success;
     }
+    else version (linux)
+	{
+        // TODO
+        assert(false);
+	}
     else
         static assert(0, "Not implemented");
 }
