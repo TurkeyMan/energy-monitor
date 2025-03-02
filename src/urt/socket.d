@@ -23,10 +23,25 @@ version (Windows)
 }
 else version (Posix)
 {
-	version = HasUnixSocket;
-	version = HasIPv6;
+    import core.sys.posix.sys.socket :
+        _bind = bind, _listen = listen, _connect = connect, _accept = accept,
+        _send = send, _sendto = sendto, _recv = recv, _recvfrom = recvfrom,
+        _shutdown = shutdown;
+    import urt.internal.os;
 
-	alias SocketHandle = int;
+    version = HasUnixSocket;
+    version = HasIPv6;
+
+    alias SocketHandle = int;
+    enum INVALID_SOCKET = -1;
+
+    // for some reason these don't get scraped from the C headers...
+    enum AF_UNSPEC = 0;
+    enum AF_UNIX = 1;   // Unix domain sockets
+    enum AF_INET = 2;   // Internet IP Protocol
+    enum AF_IPX = 4;    // Novell IPX
+    enum AF_BRIDGE = 7;     // Multiprotocol bridge
+    enum AF_INET6 = 10;     // IP version 6
 }
 else
 	static assert(false, "Platform not supported");
