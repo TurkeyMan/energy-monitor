@@ -138,8 +138,6 @@ private:
 
 version (Windows)
 {
-    import urt.system : NT_TIB, __readgsqword;
-
     __gshared void* mainFibre = null;
 
     package(urt) void initFibre()
@@ -147,9 +145,24 @@ version (Windows)
         mainFibre = ConvertThreadToFiber(null);
     }
 
-    void* GetCurrentFiber()
-        => cast(void*)__readgsqword(NT_TIB.FiberData.offsetof);
+    version (X86_64)
+    {
+        import urt.system : NT_TIB, __readgsqword;
 
-    void* GetFiberData()
-        => *cast(void**)__readgsqword(NT_TIB.FiberData.offsetof);
+        void* GetCurrentFiber()
+            => cast(void*)__readgsqword(NT_TIB.FiberData.offsetof);
+
+        void* GetFiberData()
+            => *cast(void**)__readgsqword(NT_TIB.FiberData.offsetof);
+    }
+    else version (X86)
+    {
+        import urt.system : NT_TIB, __readfsdword;
+
+        void* GetCurrentFiber()
+            => cast(void*)__readfsdword(NT_TIB.FiberData.offsetof);
+
+        void* GetFiberData()
+            => *cast(void**)__readfsdword(NT_TIB.FiberData.offsetof);
+    }
 }
