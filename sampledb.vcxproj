@@ -132,6 +132,7 @@
     <DCompile Include="src\urt\compiler.d" />
     <DCompile Include="src\urt\conv.d" />
     <DCompile Include="src\urt\crc.d" />
+    <DCompile Include="src\urt\crypto\chacha.d" />
     <DCompile Include="src\urt\dbg.d" />
     <DCompile Include="src\urt\digest\md5.d" />
     <DCompile Include="src\urt\encoding.d" />
