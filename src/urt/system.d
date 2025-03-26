@@ -2,6 +2,7 @@ module urt.system;
 
 import urt.platform;
 import urt.processor;
+import urt.time;
 
 nothrow @nogc:
 
@@ -21,6 +22,7 @@ struct SystemInfo
     string processor;
     ulong totalMemory;
     ulong availableMemory;
+    Duration uptime;
 }
 
 SystemInfo getSysInfo()
@@ -36,6 +38,31 @@ SystemInfo getSysInfo()
             r.totalMemory = mem.ullTotalPhys;
             r.availableMemory = mem.ullAvailPhys;
         }
+        r.uptime = msecs(GetTickCount64());
+    }
+    else version (linux)
+    {
+        import core.sys.linux.sys.sysinfo;
+
+        sysinfo_ info;
+        if (sysinfo(&info) < 0)
+            assert(false, "sysinfo() failed!");
+
+        r.totalMemory = cast(ulong)info.totalram * info.mem_unit;
+        r.availableMemory = cast(ulong)info.freeram * info.mem_unit;
+        r.uptime = seconds(info.uptime);
+    }
+    else version (Posix)
+    {
+        import core.sys.posix.unistd;
+
+        int pages = sysconf(_SC_PHYS_PAGES);
+        int page_size = sysconf(_SC_PAGE_SIZE);
+
+        assert(pages >= 0 && page_size >= 0, "sysconf() failed!");
+
+        r.totalMemory = cast(ulong)pages * page_size;
+        static assert(false, "TODO: need `availableMemory`");
     }
     return r;
 }
@@ -52,10 +79,23 @@ void setSystemIdleParams(IdleParams params)
 
         SetThreadExecutionState(ES_CONTINUOUS | (params.SystemRequired ? ES_SYSTEM_REQUIRED : 0) | (params.DisplayRequired ? ES_DISPLAY_REQUIRED : 0));
     }
+    else version (Posix)
+    {
+        // TODO: ...we're not likely to run on a POSIX desktop system any time soon...
+    }
     else
         static assert(0, "Not implemented");
 }
 
+
+unittest
+{
+    SystemInfo info = getSysInfo();
+    assert(info.uptime > Duration.zero);
+}
+
+
+package:
 
 version (Windows)
 {
@@ -73,6 +113,7 @@ version (Windows)
     }
 
     extern(C) int GlobalMemoryStatusEx(MEMORYSTATUSEX* lpBuffer);
+    extern(Windows) ulong GetTickCount64();
 
     version (X86_64)
     {
