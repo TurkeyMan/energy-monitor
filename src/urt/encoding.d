@@ -2,8 +2,17 @@ module urt.encoding;
 
 nothrow @nogc:
 
+
+enum Base64Decode(string str) = () { ubyte[base64_decode_length(str.length)] r; base64_decode(str, r[]); return r; }();
+enum HexDecode(string str) =    () { ubyte[hex_decode_length(str.length)] r;    hex_decode(str, r[]);    return r; }();
+enum URLDecode(string str) =    () {  char[url_decode_length(str)] r;           url_decode(str, r[]);    return r; }();
+
+
 ptrdiff_t base64_encode_length(size_t sourceLength) pure
     => (sourceLength + 2) / 3 * 4;
+
+ptrdiff_t base64_encode_length(const void[] data) pure
+    => base64_encode_length(data.length);
 
 ptrdiff_t base64_encode(const void[] data, char[] result) pure
 {
@@ -50,7 +59,10 @@ ptrdiff_t base64_encode(const void[] data, char[] result) pure
 }
 
 ptrdiff_t base64_decode_length(size_t sourceLength) pure
-=> sourceLength / 4 * 3;
+    => sourceLength / 4 * 3;
+
+ptrdiff_t base64_decode_length(const char[] data) pure
+    => base64_decode_length(data.length);
 
 ptrdiff_t base64_decode(const char[] data, void[] result) pure
 {
@@ -83,10 +95,10 @@ ptrdiff_t base64_decode(const char[] data, void[] result) pure
         if (b3 >= 80)
             return -1;
 
-        b0 = base64_map.ptr[b0];
-        b1 = base64_map.ptr[b1];
-        b2 = base64_map.ptr[b2];
-        b3 = base64_map.ptr[b3];
+        b0 = base64_map[b0];
+        b1 = base64_map[b1];
+        b2 = base64_map[b2];
+        b3 = base64_map[b3];
 
         dest[j++] = cast(ubyte)((b0 << 2) | (b1 >> 4));
         if (b2 != 64)
@@ -100,6 +112,8 @@ ptrdiff_t base64_decode(const char[] data, void[] result) pure
 
 unittest
 {
+    static assert(Base64Decode!"AQIDBAUGBwgJCgsM" == [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C]);
+
     immutable ubyte[12] data = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C];
     char[16] encoded = void;
     ubyte[12] decoded = void;
@@ -126,6 +140,11 @@ unittest
     assert(data[0..10] == decoded[0..10]);
 }
 
+ptrdiff_t hex_encode_length(size_t sourceLength) pure
+    => sourceLength * 2;
+
+ptrdiff_t hex_encode_length(const void[] data) pure
+    => data.length * 2;
 
 ptrdiff_t hex_encode(const void[] data, char[] result) pure
 {
@@ -134,6 +153,12 @@ ptrdiff_t hex_encode(const void[] data, char[] result) pure
     // reuse this since we already have it...
     return toHexString(data, result).length;
 }
+
+ptrdiff_t hex_decode_length(size_t sourceLength) pure
+    => sourceLength / 2;
+
+ptrdiff_t hex_decode_length(const char[] data) pure
+    => data.length / 2;
 
 ptrdiff_t hex_decode(const char[] data, void[] result) pure
 {
@@ -169,6 +194,8 @@ ptrdiff_t hex_decode(const char[] data, void[] result) pure
 
 unittest
 {
+    static assert(HexDecode!"0102030405060708090A0B0C" == [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C]);
+
     immutable ubyte[12] data = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C];
     char[24] encoded = void;
     ubyte[12] decoded = void;
@@ -281,6 +308,8 @@ ptrdiff_t url_decode(const char[] data, char[] result) pure
 
 unittest
 {
+    static assert(URLDecode!"Hello%2C+World%21" == "Hello, World!");
+
     char[13] data = "Hello, World!";
     char[17] encoded = void;
     char[13] decoded = void;
