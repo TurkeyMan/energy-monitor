@@ -1,0 +1,66 @@
+name: CI Matrix
+
+on:
+  push:
+    branches: [ "master", "release" ]
+  pull_request:
+    branches: [ "master", "release" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}-latest  # GitHub-hosted runners
+    strategy:
+      matrix:
+        os: [windows, ubuntu]
+        compiler: [dmd] #, ldc]
+        platform: [x86, x86_64, arm, arm64]
+        config: [unittest]
+        exclude:
+          - os: windows
+            platform: arm
+          - os: windows
+            platform: arm64
+          - compiler: dmd
+            platform: arm
+          - compiler: dmd
+            platform: arm64  # DMD ARM64 support pending
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup D Compiler
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
+          # version: latest  # Uncomment if you want the latest version
+
+      - name: Install 32-bit Toolchains (Linux)
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+        if: ${{ matrix.os == 'ubuntu' && matrix.platform == 'x86' }}
+
+      - name: Build (Windows)
+        if: ${{ matrix.os == 'windows' }}
+        run: |
+          set D_COMPILER=${{ matrix.compiler }}
+          make PLATFORM=${{ matrix.platform }} CONFIG=${{ matrix.config }} OS=${{ matrix.os }}
+        shell: cmd
+
+      - name: Build (Linux)
+        if: ${{ matrix.os == 'ubuntu' }}
+        run: |
+          export D_COMPILER=${{ matrix.compiler }}
+          make PLATFORM=${{ matrix.platform }} CONFIG=${{ matrix.config }} OS=${{ matrix.os }}
+        shell: bash
+
+      - name: Test (Windows)
+        if: ${{ success() && matrix.os == 'windows' && (matrix.platform == 'x86_64' || matrix.platform == 'x86') }}
+        run: bin\${{ matrix.platform }}_${{ matrix.config }}\enms_test.exe
+        shell: cmd
+
+      - name: Test (Linux)
+        if: ${{ success() && matrix.os == 'ubuntu' && (matrix.platform == 'x86_64' || matrix.platform == 'x86') }}
+        run: ./bin/${{ matrix.platform }}_${{ matrix.config }}/enms_test
+        shell: bash
