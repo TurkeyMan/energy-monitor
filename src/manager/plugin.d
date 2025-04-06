@@ -86,6 +86,7 @@ void registerModules(ApplicationInstance app)
     registerModule!(protocol.modbus)(app);
     registerModule!(protocol.mqtt)(app);
 //    registerModule!(protocol.snmp)(app);
+    registerModule!(protocol.spinel)(app);
     registerModule!(protocol.telnet)(app);
     registerModule!(protocol.tesla)(app);
     registerModule!(protocol.zigbee)(app);
