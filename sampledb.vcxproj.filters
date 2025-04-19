@@ -273,6 +273,9 @@
     <DCompile Include="src\urt\intrinsic\package.d">
       <Filter>src\urt\intrinsic</Filter>
     </DCompile>
+    <DCompile Include="src\urt\intrinsic\x86.d">
+      <Filter>src\urt\intrinsic</Filter>
+    </DCompile>
     <DCompile Include="src\urt\package.d">
       <Filter>src\urt</Filter>
     </DCompile>
@@ -554,6 +557,9 @@
     </DCompile>
     <DCompile Include="src\manager\expression.d">
       <Filter>src\manager</Filter>
+    </DCompile>
+    <DCompile Include="src\urt\bigint.d">
+      <Filter>src\urt</Filter>
     </DCompile>
   </ItemGroup>
   <ItemGroup>
