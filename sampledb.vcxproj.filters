@@ -561,6 +561,9 @@
     <DCompile Include="src\protocol\http\message.d">
       <Filter>src\protocol\http</Filter>
     </DCompile>
+    <DCompile Include="src\urt\bigint.d">
+      <Filter>src\urt</Filter>
+    </DCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
