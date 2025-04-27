@@ -96,7 +96,7 @@ bool addc(T = uint)(T a, T b, out T r, bool c_in)
             auto r1 = _llvm_add_overflow(a, b);
             auto r2 = _llvm_add_overflow(r1.r, c_in);
             r = r2.r;
-            return r1.c || r2.c;
+            return r1.c | r2.c;
         }
     }
     else version (GNU)
