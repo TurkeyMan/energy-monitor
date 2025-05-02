@@ -273,6 +273,9 @@
     <DCompile Include="src\urt\intrinsic\package.d">
       <Filter>src\urt\intrinsic</Filter>
     </DCompile>
+    <DCompile Include="src\urt\intrinsic\x86.d">
+      <Filter>src\urt\intrinsic</Filter>
+    </DCompile>
     <DCompile Include="src\urt\package.d">
       <Filter>src\urt</Filter>
     </DCompile>
@@ -557,6 +560,9 @@
     </DCompile>
     <DCompile Include="src\protocol\http\message.d">
       <Filter>src\protocol\http</Filter>
+    </DCompile>
+    <DCompile Include="src\urt\bigint.d">
+      <Filter>src\urt</Filter>
     </DCompile>
   </ItemGroup>
   <ItemGroup>
