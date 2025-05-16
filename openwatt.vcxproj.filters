@@ -585,6 +585,9 @@
     <DCompile Include="third_party\urt\src\urt\zip.d">
       <Filter>third_party\urt</Filter>
     </DCompile>
+    <DCompile Include="src\protocol\http\websocket.d">
+      <Filter>src\protocol\http</Filter>
+    </DCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
