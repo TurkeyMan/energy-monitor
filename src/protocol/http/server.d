@@ -26,16 +26,36 @@ nothrow @nogc:
 
     const String name;
 
-    this(String name, BaseInterface , ushort port, RequestHandler requestHandler)
+    this(String name, BaseInterface , ushort port, RequestHandler defaultRequestHandler)
     {
         server = defaultAllocator().allocT!TCPServer(name.toString().makeString(defaultAllocator), port, &acceptConnection, null);
         this.name = name.move;
-        this.requestHandler = requestHandler;
+        this.defaultRequestHandler = defaultRequestHandler;
     }
 
     ~this()
     {
         defaultAllocator().freeT(server);
+    }
+
+    bool addHandler(HTTPMethod method, const(char)[] uriPrefix, RequestHandler requestHandler)
+    {
+        foreach (ref h; handlers)
+        {
+            // if a higher level handler already exists, we can't add this handler
+            if (h.method == method && uriPrefix.startsWith(h.uriPrefix))
+                return false;
+        }
+
+        handlers ~= Handler(method, uriPrefix.makeString(defaultAllocator), requestHandler);
+        return true;
+    }
+
+    RequestHandler hookGlobalHandler(RequestHandler requestHandler)
+    {
+        RequestHandler old = defaultRequestHandler;
+        defaultRequestHandler = requestHandler;
+        return old;
     }
 
     void update()
@@ -57,24 +77,33 @@ nothrow @nogc:
 package:
     TCPServer server;
     Array!(Session*) sessions;
-    RequestHandler requestHandler;
+    RequestHandler defaultRequestHandler;
 
-    void acceptConnection(TCPStream stream, void* )
+    void acceptConnection(TCPStream stream, void*)
     {
-        sessions.emplaceBack(defaultAllocator().allocT!Session(stream, requestHandler));
+        sessions.emplaceBack(defaultAllocator().allocT!Session(this, stream));
     }
 
 private:
-	struct Session
-	{
+    struct Handler
+    {
+        HTTPMethod method;
+        String uriPrefix;
+        RequestHandler requestHandler;
+    }
+
+    Array!Handler handlers;
+
+    struct Session
+    {
     nothrow @nogc:
 
-        this(Stream stream, RequestHandler requestHandler)
+        this(HTTPServer server, Stream stream)
         {
+            this.server = server;
             this.stream = stream;
             stream.setOpts(StreamOptions.NonBlocking);
             parser = HTTPParser(&requestCallback);
-            this.requestHandler = requestHandler;
         }
 
         int update()
@@ -93,16 +122,18 @@ private:
 
         int requestCallback(ref const HTTPMessage request)
         {
-            HTTPMessage response;
-            int result = requestHandler(request, stream);
-            if (result != 0)
-                return result;
-
-            return 0;
+            foreach (ref h; server.handlers)
+            {
+                if (request.method == h.method && request.requestTarget.startsWith(h.uriPrefix))
+                    return h.requestHandler(request, stream);
+            }
+            return server.defaultRequestHandler(request, stream);
         }
 
+        HTTPServer server;
         Stream stream;
+
+    private:
         HTTPParser parser;
-        RequestHandler requestHandler;
-	}
+    }
 }

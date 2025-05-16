@@ -564,6 +564,9 @@
     <DCompile Include="src\urt\attribute.d">
       <Filter>src\urt</Filter>
     </DCompile>
+    <DCompile Include="src\protocol\http\websocket.d">
+      <Filter>src\protocol\http</Filter>
+    </DCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

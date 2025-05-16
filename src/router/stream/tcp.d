@@ -335,7 +335,7 @@ enum ServerOptions
 
 class TCPServer
 {
-    nothrow @nogc:
+nothrow @nogc:
 
     alias NewConnection = void delegate(TCPStream client, void* userData) nothrow @nogc;
 
