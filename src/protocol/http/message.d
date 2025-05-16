@@ -75,6 +75,8 @@ nothrow @nogc:
 
     ushort statusCode;              // Status code (e.g., 200, 404, 500) // TODO: Collapse with flags
     String reason;                  // Reason
+
+    // TODO: these fields don't feel right... not clear what they are.
     String url;                     // URL or path (e.g., "/index.html" or full "https://example.com")
     String requestTarget;
 
