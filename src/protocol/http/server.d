@@ -26,7 +26,7 @@ class HTTPServer
 {
 nothrow @nogc:
 
-    alias RequestHandler = int delegate(ref const HTTPMessage, Stream stream) nothrow @nogc;
+    alias RequestHandler = int delegate(ref const HTTPMessage, ref Stream stream) nothrow @nogc;
 
     const String name;
 

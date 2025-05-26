@@ -36,7 +36,7 @@ nothrow @nogc:
 
     Collection!HTTPClient clients;
     Map!(const(char)[], HTTPServer) servers;
-    Map!(const(char)[], WebsocketServer) wsServers;
+    Map!(const(char)[], WebSocketServer) wsServers;
 
     override void init()
     {
@@ -50,9 +50,15 @@ nothrow @nogc:
     HTTPServer createServer(const(char)[] name, ushort port, HTTPServer.RequestHandler handler)
     {
         HTTPServer server = defaultAllocator().allocT!HTTPServer(name.makeString(defaultAllocator()), null, port, handler);
-        servers[server.name[]] = server;
-
+        servers.insert(server.name[], server);
         return server;
+    }
+
+    WebSocketServer createWebSocketServer(String name, HTTPServer httpServer, const(char)[] uri, WebSocketServer.NewConnection connCallback, void* userData)
+    {
+        WebSocketServer wsServer = g_app.allocator.allocT!WebSocketServer(name.move, httpServer, uri, connCallback, userData);
+        wsServers.insert(wsServer.name[], wsServer);
+        return wsServer;
     }
 
     override void update()
@@ -150,14 +156,14 @@ nothrow @nogc:
             return;
         }
 
-        WebsocketServer wsServer = g_app.allocator.allocT!WebsocketServer(name.makeString(g_app.allocator), *s, uri ? uri.value : null, &newWebsocket, null);
-
-        wsServers.insert(wsServer.name[], wsServer);
-
-        writeInfof("Create Websocket server '{0}' as HTTP server {1}:{2}", name, http_server, uri);
+        WebSocketServer wsServer = createWebSocketServer(name.makeString(g_app.allocator), *s, uri ? uri.value : null, &newWebsocket, null);
+        if (!wsServer)
+            session.writef("Failed to create WebSocket server!");
+        else
+            writeInfof("Create WebSocket server '{0}' as HTTP server {1}:{2}", name, http_server, uri);
     }
 
-    void newWebsocket(Stream client, void* userData)
+    void newWebsocket(WebSocket client, void* userData)
     {
         // TODO: new websicket connection...
         int x = 0;
