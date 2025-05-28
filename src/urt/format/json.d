@@ -23,28 +23,9 @@ ptrdiff_t writeJson(ref const Variant val, char[] buffer, bool dense = false, ui
     final switch (val.type)
     {
         case Variant.Type.Null:
-            if (!buffer.ptr)
-                return 4;
-            if (buffer.length < 4)
-                return -1;
-            buffer[0 .. 4] = "null";
-            return 4;
-
-        case Variant.Type.False:
-            if (!buffer.ptr)
-                return 5;
-            if (buffer.length < 5)
-                return -1;
-            buffer[0 .. 5] = "false";
-            return 5;
-
         case Variant.Type.True:
-            if (!buffer.ptr)
-                return 4;
-            if (buffer.length < 4)
-                return -1;
-            buffer[0 .. 4] = "true";
-            return 4;
+        case Variant.Type.False:
+            return val.toString(buffer, null, null);
 
         case Variant.Type.Map:
         case Variant.Type.Array:
