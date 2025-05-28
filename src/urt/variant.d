@@ -1,5 +1,6 @@
 module urt.variant;
 
+import urt.algorithm : compare;
 import urt.array;
 import urt.kvp;
 import urt.lifetime;
@@ -57,80 +58,81 @@ nothrow @nogc:
     }
 
     this(I)(I i)
-        if (is(I == byte) || is(I == short))
+        if (isSomeInt!I)
     {
-        flags = Flags.NumberInt;
-        value.l = i;
-        if (i >= 0)
-            flags |= Flags.UintFlag | Flags.Uint64Flag;
-    }
-    this(I)(I i)
-        if (is(I == ubyte) || is(I == ushort))
-    {
-        flags = cast(Flags)(Flags.NumberUint | Flags.IntFlag);
-        value.ul = i;
-    }
+        static if (isSignedInt!I)
+            value.l = i;
+        else
+            value.ul = i;
 
-    this(int i)
-    {
-        flags = Flags.NumberInt;
-        value.l = i;
-        if (i >= 0)
-            flags |= Flags.UintFlag | Flags.Uint64Flag;
-    }
-
-    this(uint i)
-    {
-        flags = Flags.NumberUint;
-        value.ul = i;
-        if (i <= int.max)
-            flags |= Flags.IntFlag;
-    }
-
-    this(long i)
-    {
-        flags = Flags.NumberInt64;
-        value.l = i;
-        if (i >= 0)
+        static if (is(I == ubyte) || is(I == ushort))
+            flags = cast(Flags)(Flags.NumberUint | Flags.IntFlag | Flags.Int64Flag);
+        else static if (is(I == byte) || is(I == short) || is(I == int))
         {
-            flags |= Flags.Uint64Flag;
-            if (i <= int.max)
-                flags |= Flags.IntFlag | Flags.UintFlag;
-            else if (i <= uint.max)
-                flags |= Flags.UintFlag;
+            flags = Flags.NumberInt;
+            if (i >= 0)
+                flags |= Flags.UintFlag | Flags.Uint64Flag;
         }
-        else if (i >= int.min)
-            flags |= Flags.IntFlag;
+        else static if (is(I == uint))
+        {
+            flags = Flags.NumberUint;
+            if (i <= int.max)
+                flags |= Flags.IntFlag;
+        }
+        else static if (is(I == long))
+        {
+            flags = Flags.NumberInt64;
+            if (i >= 0)
+            {
+                flags |= Flags.Uint64Flag;
+                if (i <= int.max)
+                    flags |= Flags.IntFlag | Flags.UintFlag;
+                else if (i <= uint.max)
+                    flags |= Flags.UintFlag;
+            }
+            else if (i >= int.min)
+                flags |= Flags.IntFlag;
+        }
+        else static if (is(I == ulong))
+        {
+            flags = Flags.NumberUint64;
+            if (i <= int.max)
+                flags |= Flags.IntFlag | Flags.UintFlag | Flags.Int64Flag;
+            else if (i <= uint.max)
+                flags |= Flags.UintFlag | Flags.Int64Flag;
+            else if (i <= long.max)
+                flags |= Flags.Int64Flag;
+        }
     }
 
-    this(ulong i)
+    this(F)(F f)
+        if (isSomeFloat!F)
     {
-        flags = Flags.NumberUint64;
-        value.ul = i;
-        if (i <= int.max)
-            flags |= Flags.IntFlag | Flags.UintFlag | Flags.Int64Flag;
-        else if (i <= uint.max)
-            flags |= Flags.UintFlag | Flags.Int64Flag;
-        else if (i <= long.max)
-            flags |= Flags.Int64Flag;
-    }
-
-    this(float f)
-    {
-        flags = Flags.NumberFloat;
+        static if (is(F == float))
+            flags = Flags.NumberFloat;
+        else
+            flags = Flags.NumberDouble;
         value.d = f;
     }
-    this(double d)
+
+    this(E)(E e)
+        if (is(E == enum))
     {
-        flags = Flags.NumberDouble;
-        value.d = d;
+        static if (is(E T == enum))
+        {
+            this(T(e));
+            // TODO: do we keep a record of the enum keys for stringification?
+        }
     }
 
     this(U, ScaledUnit _U)(Quantity!(U, _U) q)
     {
         this(q.value);
-        flags |= Flags.IsQuantity;
-        count = q.unit.pack;
+        if (q.unit.pack)
+        {
+            flags |= Flags.IsQuantity;
+            count = q.unit.pack;
+        }
     }
 
     this(const(char)[] s) // TODO: (S)(S s)
@@ -222,12 +224,28 @@ nothrow @nogc:
         destroy!false();
     }
 
+    void opAssign(ref Variant value)
+    {
+        if (&this is &value)
+            return; // TODO: should this be an assert instead of a graceful handler?
+        destroy!false();
+        new(this) Variant(value);
+    }
+    version (EnableMoveSemantics) {
+    void opAssign(Variant value)
+    {
+        if (&this is &value)
+            return; // TODO: should this be an assert instead of a graceful handler?
+        destroy!false();
+        new(this) Variant(__rvalue(value)); // TODO: value.move
+    }
+    }
+
     // TODO: since this is a catch-all, the error messages will be a bit shit
     //       maybe we can find a way to constrain it to valid inputs?
     void opAssign(T)(auto ref T value)
     {
-        destroy!false();
-        emplace(&this, forward!value);
+        this = Variant(value);
     }
 
     // TODO: do we want Variant to support +=, ~=, etc...?
@@ -256,6 +274,220 @@ nothrow @nogc:
             return *m;
         nodeArray.emplaceBack(member);
         return nodeArray.pushBack();
+    }
+
+    bool opEquals(T)(ref const Variant rhs) const pure
+    {
+        return opCmp(rhs) == 0;
+    }
+    bool opEquals(T)(auto ref const T rhs) const
+    {
+        // TODO: handle short-cut array/map comparisons?
+        static if (is(T == typeof(null)))
+            return type == Type.Null || ((type == Type.String || type == Type.Array || type == Type.Map) && empty());
+        else static if (is(T == bool))
+        {
+            if (!isBool)
+                return false; // do non-zero numbers evaluate true? what about non-zero strings? etc...
+            return asBool == rhs;
+        }
+        else static if (isSomeInt!T || isSomeFloat!T)
+        {
+            if (!isNumber)
+                return false;
+            static if (isSomeInt!T) if (!canFitInt!T)
+                return false;
+            if (isQuantity)
+                return asQuantity!double() == Quantity!T(rhs);
+            return as!T == rhs;
+        }
+        else static if (is(T == Quantity!(U, _U), U, ScaledUnit _U))
+        {
+            if (!isNumber)
+                return false;
+            return asQuantity!double() == rhs;
+        }
+        else static if (is(T E == enum))
+        {
+            // TODO: should we also do string key comparisons?
+            return opEquals(cast(E)rhs);
+        }
+        else static if (is(T : const(char)[]))
+            return isString && asString() == rhs[];
+        else static if (ValidUserType!T)
+            return asUser!T == rhs;
+        else
+            static assert(false, "TODO: variant comparison with '", T.stringof, "' not supported");
+    }
+
+    int opCmp(ref const Variant rhs) const pure
+    {
+        const(Variant)* a, b;
+        bool invert = false;
+        if (this.type <= rhs.type)
+            a = &this, b = &rhs;
+        else
+            a = &rhs, b = &this, invert = true;
+
+        int r = 0;
+        final switch (a.type)
+        {
+            case Type.Null:
+                if (b.type == Type.Null)
+                    return 0;
+                else if ((b.type == Type.String || b.type == Type.Array || b.type == Type.Map) && b.empty())
+                    return 0;
+                r = -1; // sort null before other things...
+                break;
+
+            case Type.True:
+            case Type.False:
+                // if both sides are bool
+                if (b.type <= Type.False)
+                {
+                    r = a.asBool - b.asBool;
+                    break;
+                }
+                // TODO: maybe we don't want to accept bool/number comparison?
+                goto case; // we will compare bools with numbers...
+
+            case Type.Number:
+                if (b.type <= Type.Number)
+                {
+                    static double asDoubleWithBool(ref const Variant v)
+                        => v.isBool() ? double(v.asBool()) : v.asDouble();
+
+                    if (a.isQuantity || b.isQuantity)
+                    {
+                        // we can't compare different units
+                        uint aunit = a.isQuantity ? (a.count & 0xFFFFFF) : 0;
+                        uint bunit = b.isQuantity ? (b.count & 0xFFFFFF) : 0;
+                        if (aunit != bunit)
+                        {
+                            r = aunit - bunit;
+                            break;
+                        }
+
+                        // matching units, but we'll only do quantity comparison if there is some scaling
+                        ubyte ascale = a.isQuantity ? (a.count >> 24) : 0;
+                        ubyte bscale = b.isQuantity ? (b.count >> 24) : 0;
+                        if (ascale || bscale)
+                        {
+                            Quantity!double aq = a.isQuantity ? a.asQuantity!double() : Quantity!double(asDoubleWithBool(*a));
+                            Quantity!double bq = b.isQuantity ? b.asQuantity!double() : Quantity!double(asDoubleWithBool(*b));
+                            r = aq.opCmp(bq);
+                            break;
+                        }
+                    }
+
+                    if (a.flags & Flags.FloatFlag || b.flags & Flags.FloatFlag)
+                    {
+                        // float comparison
+                        // TODO: determine if float/bool comparison seems right? is: -1 < false < 0.9 < true < 1.1?
+                        double af = asDoubleWithBool(*a);
+                        double bf = asDoubleWithBool(*b);
+                        r = af < bf ? -1 : af > bf ? 1 : 0;
+                        break;
+                    }
+
+                    // TODO: this could be further optimised by comparing the value range flags...
+                    if ((a.flags & (Flags.Int64Flag | Flags.IsBool)) == 0)
+                    {
+                        ulong aul = a.asUlong();
+                        if ((b.flags & (Flags.Int64Flag | Flags.IsBool)) == 0)
+                        {
+                            ulong bul = b.asUlong();
+                            r = aul < bul ? -1 : aul > bul ? 1 : 0;
+                        }
+                        else
+                            r = 1; // a is in ulong range, rhs is not; a is larger...
+                        break;
+                    }
+                    if ((b.flags & (Flags.Int64Flag | Flags.IsBool)) == 0)
+                    {
+                        r = -1; // b is in ulong range, lhs is not; b is larger...
+                        break;
+                    }
+
+                    long al = a.isBool() ? a.asBool() : a.asLong();
+                    long bl = b.isBool() ? b.asBool() : b.asLong();
+                    r = al < bl ? -1 : al > bl ? 1 : 0;
+                }
+                else
+                    r = -1; // sort numbers before other things...
+                break;
+
+            case Type.String:
+                if (b.type != Type.String)
+                {
+                    r = -1;
+                    break;
+                }
+                r = compare(a.asString(), b.asString());
+                break;
+
+            case Type.Array:
+                if (b.type != Type.Array)
+                {
+                    r = -1;
+                    break;
+                }
+                r = compare(a.asArray()[], b.asArray()[]);
+                break;
+
+            case Type.Map:
+                if (b.type != Type.Map)
+                {
+                    r = -1;
+                    break;
+                }
+                assert(false, "TODO");
+                break;
+
+            case Type.User:
+                uint at = a.userType;
+                uint bt = b.userType;
+                if (at != bt)
+                {
+                    r = at < bt ? -1 : at > bt ? 1 : 0;
+                    break;
+                }
+                // same type...
+                assert(false, "TODO!");
+        }
+        return invert ? -r : r;
+    }
+    int opCmp(T)(auto ref const T rhs) const
+    {
+        // TODO: handle short-cut string, array, map comparisons
+        static if (is(T == typeof(null)))
+            return type == Type.Null || ((type == Type.String || type == Type.Array || type == Type.Map) && empty()) ? 0 : 1;
+        else static if (is(T : const(char)[]))
+            return isString() ? compare(asString(), rhs) : (type < Type.String ? -1 : 1);
+        static if (ValidUserType!T)
+            return compare(asUser!T, rhs);
+        else
+            return opCmp(Variant(rhs));
+    }
+
+    bool opBinary(string op)(ref const Variant rhs) const pure
+        if (op == "is")
+    {
+        // compare that Variant's are identical, not just equivalent!
+        assert(false, "TODO");
+    }
+    bool opBinary(string op, T)(auto ref const T rhs) const
+        if (op == "is")
+    {
+        // TODO: handle short-cut array/map comparisons?
+        static if (is(T == typeof(null)))
+            return type == Type.Null || ((type == Type.String || type == Type.Array || type == Type.Map) && empty());
+        else static if (is(T : const(char)[]))
+            return isString && asString().ptr is rhs.ptr && length() == rhs.length;
+        else static if (ValidUserType!T)
+            return asUser!T is rhs;
+        else
+            return opBinary!"is"(Variant(rhs));
     }
 
     bool isNull() const pure
@@ -299,37 +531,61 @@ nothrow @nogc:
             return count == UserTypeId!T;
     }
 
+    bool canFitInt(I)() const pure
+        if (isSomeInt!I)
+    {
+        if (!isNumber || isFloat)
+            return false;
+        static if (is(I == ulong))
+            return isUlong;
+        else static if (is(I == long))
+            return isLong;
+        else static if (is(I == uint))
+            return isUint;
+        else static if (is(I == int))
+            return isInt;
+        else static if (isSignedInt!I)
+        {
+            uint u = asUint();
+            return u <= I.max;
+        }
+        else
+        {
+            int i = asInt();
+            return i >= I.min && i <= I.max;
+        }
+    }
 
     bool asBool() const pure @property
     {
-        assert(isBool());
+        assert(isNull || isBool());
         return flags == Flags.True;
     }
 
     int asInt() const pure @property
     {
-        assert(isInt());
+        assert(isNull || isInt(), "Value out of range for int");
         return cast(int)value.l;
     }
     uint asUint() const pure @property
     {
-        assert(isUint());
+        assert(isNull || isUint(), "Value out of range for uint");
         return cast(uint)value.ul;
     }
     long asLong() const pure @property
     {
-        assert(isLong());
+        assert(isNull || isLong(), "Value out of range for long");
         return value.l;
     }
     ulong asUlong() const pure @property
     {
-        assert(isUlong());
+        assert(isNull || isUlong(), "Value out of range for ulong");
         return value.ul;
     }
 
     double asDouble() const pure @property
     {
-        assert(isNumber());
+        assert(isNull || isNumber);
         if ((flags & Flags.DoubleFlag) != 0)
             return value.d;
         if ((flags & Flags.UintFlag) != 0)
@@ -341,33 +597,34 @@ nothrow @nogc:
         return cast(double)cast(long)value.ul;
     }
 
-    Quantity!T asQuantity(T = double)() const pure @property
+    float asFloat() const pure @property
     {
-        assert(isNumber());
+        assert(isNull || isNumber);
+        if ((flags & Flags.DoubleFlag) != 0)
+            return value.d;
+        if ((flags & Flags.UintFlag) != 0)
+            return cast(float)cast(uint)value.ul;
+        if ((flags & Flags.IntFlag) != 0)
+            return cast(float)cast(int)cast(long)value.ul;
+        if ((flags & Flags.Uint64Flag) != 0)
+            return cast(float)value.ul;
+        return cast(float)cast(long)value.ul;
+    }
 
-        Quantity!double r;
-        static if (is(T == double))
-            r.value = asDouble();
-//        else static if (is(T == float))
-//            r.value = asFloat();
-        else static if (is(T == int))
-            r.value = asInt();
-        else static if (is(T == uint))
-            r.value = asUint();
-        else static if (is(T == long))
-            r.value = asLong();
-        else static if (is(T == ulong))
-            r.value = asUlong();
-        else
-            assert(false, "Unsupported quantity type!");
-        if (isQuantity())
+    Quantity!T asQuantity(T = double)() const pure @property
+        if (isSomeFloat!T || isSomeInt!T)
+    {
+        assert(isNull || isNumber);
+        Quantity!T r;
+        r.value = as!T;
+        if (isQuantity)
             r.unit.pack = count;
         return r;
     }
 
     const(char)[] asString() const pure
     {
-        assert(isString());
+        assert(isNull || isString);
         if (flags & Flags.Embedded)
             return embed[0 .. embed[$-1]];
         return value.s[0 .. count];
@@ -410,6 +667,68 @@ nothrow @nogc:
             static assert(false, "TODO: memcpy to a stack local and return that...");
         else
             static assert(false, "Should be impossible?");
+    }
+
+    auto as(T)() inout pure
+        if (!ValidUserType!T || !UserTypeReturnByRef!T)
+    {
+        static if (isSomeInt!T)
+        {
+            static if (isSignedInt!T)
+            {
+                static if (is(T == long))
+                    return asLong();
+                else
+                {
+                    int i = asInt();
+                    static if (!is(T == int))
+                        assert(i >= T.min && i <= T.max, "Value out of range for " ~ T.stringof);
+                    return cast(T)i;
+                }
+            }
+            else
+            {
+                static if (is(T == ulong))
+                    return asUlong();
+                else
+                {
+                    uint u = asInt();
+                    static if (!is(T == uint))
+                        assert(u <= T.max, "Value out of range for " ~ T.stringof);
+                    return cast(T)u;
+                }
+            }
+        }
+        else static if (isSomeFloat!T)
+        {
+            static if (is(T == float))
+                return asFloat();
+            else
+                return asDouble();
+        }
+        else static if (is(T == Quantity!(U, _U), U, ScaledUnit _U))
+        {
+            return asQuantity!U();
+        }
+        else static if (is(T : const(char)[]))
+        {
+            static if (is(T == struct)) // for String/MutableString/etc
+                return T(asString); // TODO: error? shouldn't this NRVO?!
+            else
+                return asString;
+        }
+        else static if (ValidUserType!T)
+            return asUser!T;
+        else
+            static assert(false, "TODO!");
+    }
+    ref auto as(T)() inout pure
+        if (ValidUserType!T && UserTypeReturnByRef!T)
+    {
+        static if (ValidUserType!T)
+            return asUser!T;
+        else
+            static assert(false, "TODO!");
     }
 
     size_t length() const pure
@@ -471,41 +790,29 @@ nothrow @nogc:
     {
         final switch (type)
         {
-            case Variant.Type.Null:
+            case Variant.Type.Null:  // assume type == 0
+            case Variant.Type.True:  // assume type == 1
+            case Variant.Type.False: // assume type == 2
+                __gshared immutable char** values = [ "null", "true", "false" ];
+                size_t len = 4 + (type >> 1);
                 if (!buffer.ptr)
-                    return 4;
-                if (buffer.length < 4)
+                    return len;
+                if (buffer.length < len)
                     return -1;
-                buffer[0 .. 4] = "null";
-                return 4;
-
-            case Variant.Type.False:
-                if (!buffer.ptr)
-                    return 5;
-                if (buffer.length < 5)
-                    return -1;
-                buffer[0 .. 5] = "false";
-                return 5;
-
-            case Variant.Type.True:
-                if (!buffer.ptr)
-                    return 4;
-                if (buffer.length < 4)
-                    return -1;
-                buffer[0 .. 4] = "true";
-                return 4;
+                buffer[0 .. len] = values[type][0 .. len];
+                return len;
 
             case Variant.Type.Number:
                 import urt.conv;
 
                 if (isQuantity())
-                    assert(false, "TODO: implement quantity formatting for JSON");
+                    return asQuantity().toString(buffer);//, format, formatArgs);
 
                 if (isDouble())
                     return asDouble().formatFloat(buffer);
 
                 // TODO: parse args?
-                //format
+                assert(!format, "TODO");
 
                 if (flags & Flags.Uint64Flag)
                     return asUlong().formatUint(buffer);
@@ -537,6 +844,67 @@ nothrow @nogc:
                     return findTypeDetails(count).stringify(ptr, buffer);
         }
     }
+
+    ptrdiff_t fromString(const(char)[] s)
+    {
+        import urt.string.ascii : isNumeric;
+        import urt.conv : parseIntWithDecimal;
+
+        // TODO: first we should try and parse user types...?
+
+        // then parse the normal stuff..
+        if (s.empty || s == "null")
+        {
+            this = null;
+            return 4;
+        }
+        if (s == "true")
+        {
+            this = true;
+            return 4;
+        }
+        if (s == "false")
+        {
+            this = false;
+            return 5;
+        }
+
+        if (s[0] == '"')
+        {
+            for (size_t i = 1; i < s.length; ++i)
+            {
+                if (s[i] == '"')
+                {
+                    assert(i == s.length - 1, "String must end with a quote");
+                    this = s[1 .. i];
+                    return i + 1;
+                }
+            }
+            assert(false, "String has no closing quote");
+        }
+
+        if (s[0].isNumeric)
+        {
+            ulong div;
+            size_t taken;
+            long i = s.parseIntWithDecimal(div, &taken, 10);
+            if (div != 1)
+                this = double(i) / div;
+            else
+                this = i;
+            if (taken < s.length)
+            {
+                ScaledUnit unit;
+                taken += unit.fromString(s[taken .. $]);
+                assert(taken == s.length, "String is not a valid number");
+            }
+            return taken;
+        }
+
+        // what is this stuff?
+        assert(false, "TODO");
+    }
+
 
 package:
     union Value
@@ -578,6 +946,19 @@ package:
     Type type() const pure
         => cast(Type)(flags & Flags.TypeMask);
 
+    uint userType() const pure
+    {
+        if (flags & Flags.Embedded)
+            return alloc; // short id
+        return count; // long id
+    }
+    inout(void)* userPtr() inout pure
+    {
+        if (flags & Flags.Embedded)
+            return embed.ptr;
+        return ptr;
+    }
+
     ref inout(Array!Variant) nodeArray() @property inout pure
         => *cast(inout(Array!Variant)*)&value.n;
     void takeNodeArray(ref Array!Variant arr)
@@ -602,19 +983,14 @@ package:
         if ((t == Type.Map || t == Type.Array) && value.n)
             nodeArray.destroy!false();
         else if (t == Type.User)
-        {
-            if (flags & Flags.Embedded)
-                findTypeDetails(alloc).destroy(embed.ptr);
-            else
-                findTypeDetails(count).destroy(ptr);
-        }
+            findTypeDetails(userType).destroy(userPtr);
     }
 
     enum Type : ushort
     {
         Null        = 0,
-        False       = 1,
-        True        = 2,
+        True        = 1,
+        False       = 2,
         Number      = 3,
         String      = 4,
         Array       = 5,
@@ -742,6 +1118,7 @@ struct TypeDetails
     uint typeId;
     void function(void* val) nothrow @nogc destroy;
     ptrdiff_t function(const void* val, char[] buffer) nothrow @nogc stringify;
+    // TODO: PARSE!!!
 }
 TypeDetails[8] typeDetails;
 size_t numTypeDetails = 0;

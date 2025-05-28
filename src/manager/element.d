@@ -2,12 +2,11 @@ module manager.element;
 
 import urt.array;
 import urt.string;
+import urt.variant;
 
 import manager.component;
 import manager.device;
 import manager.subscriber;
-import manager.units;
-import manager.value;
 
 nothrow @nogc:
 
@@ -26,16 +25,19 @@ nothrow @nogc:
 
     String id;
     String name;
-    String unit;
 
-    Value latest;
+    Variant latest;
+//    ScaledUnit displayUnit;
+    String unit; // replace these with variant?
+
+//    Value latest;
+//    ushort arrayLen;
+//    Value.Type type;
 
     Access access;
 
-    Value.Type type;
-    ushort arrayLen;
-
     Array!Subscriber subscribers;
+    ushort subscribersDirty;
 
     this(this) @disable;
 
@@ -52,60 +54,32 @@ nothrow @nogc:
 
     float normalisedValue() const
     {
-        if (unit)
-        {
-            UnitDef conv = getUnitConv(unit);
-            float val = value.asFloat();
-            return conv.normalise(val);
-        }
-        else
-            return value.asFloat();
+        return cast(float)value.asQuantity().normalise().value;
+//        if (unit)
+//        {
+//            UnitDef conv = getUnitConv(unit);
+//            float val = value.asFloat();
+//            return conv.normalise(val);
+//        }
+//        else
+//            return value.asFloat();
     }
 
-    ref const(Value) value() const
+    ref const(Variant) value() const
     {
         return latest;
     }
 
     void value(T)(auto ref T v)
     {
-        import urt.traits;
-
-        static if (is(T == int))
+        if (latest != v)
         {
-            if (latest.getInt() != v)
-            {
-                latest = Value(v);
-                signal(latest, null); // TODO: who made the change? so we can break cycles...
-            }
+            latest = v;
+            signal(latest, null); // TODO: who made the change? so we can break cycles...
         }
-        else static if (is(T == float))
-        {
-            if (latest.getFloat() != v)
-            {
-                latest = Value(v);
-                signal(latest, null); // TODO: who made the change? so we can break cycles...
-            }
-        }
-        else static if (is(T : const(char)[]))
-        {
-            if (latest.getString() != v[])
-            {
-                latest = Value(v);
-                signal(latest, null); // TODO: who made the change? so we can break cycles...
-            }
-        }
-        else static if (is(T E == enum) && isSomeInt!E)
-            value(cast(int)v);
-        else static if (isSomeInt!T)
-            value(cast(int)v);
-        else static if (isSomeFloat!T)
-            value(cast(float)v);
-        else
-            static assert(false, "Not implemented");
     }
 
-    void signal(ref const Value v, Subscriber who)
+    void signal(ref const Variant v, Subscriber who)
     {
         foreach (s; subscribers)
             s.onChange(&this, v, who);
