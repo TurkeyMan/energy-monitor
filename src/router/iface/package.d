@@ -48,17 +48,33 @@ nothrow @nogc:
     MACAddress src;
     MACAddress dst;
     ushort etherType;
-    ushort owSubType;
+    union {
+        ushort owSubType; // if etherType == EtherType.OW
+        ushort etherType2;
+    }
     ushort vlan;
     FilterCallback customFilter;
     PacketDirection direction = PacketDirection.Incoming;
 
     bool match(ref const Packet p)
     {
-        if (etherType && p.etherType != etherType)
-            return false;
-        if (owSubType && p.etherSubType != owSubType)
-            return false;
+        if (etherType)
+        {
+            if (p.etherType != etherType)
+            {
+                if (!etherType2 || etherType == EtherType.OW)
+                    return false;
+                if (p.etherType != etherType2)
+                    return false;
+            }
+            else if (etherType == EtherType.OW)
+            {
+                if (owSubType && p.etherSubType != owSubType)
+                    return false;
+            }
+        }
+        else
+            debug assert(etherType2 == 0, "etherType must be set if etherType 2 is set!");
         if (vlan && p.vlan != vlan)
             return false;
         if (src && p.src != src)
@@ -176,6 +192,10 @@ nothrow @nogc:
 
     override const(char)[] statusMessage() const
         => running ? "Running" : super.statusMessage();
+
+    // alias the base functions into this scope to merge the overload sets
+    alias subscribe = typeof(super).subscribe;
+    alias unsubscribe = typeof(super).unsubscribe;
 
     void subscribe(InterfaceSubscriber.PacketHandler packetHandler, ref const PacketFilter filter, void* userData = null)
     {
