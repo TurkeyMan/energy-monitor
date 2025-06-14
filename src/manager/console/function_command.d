@@ -542,9 +542,50 @@ const(char[]) convertVariant(ref const Variant v, out Device r, Application app)
     return r ? null : tconcat("No device '", s, '\'');
 }
 
+import router.iface;
+const(char[]) convertVariant(I)(ref const Variant v, out I r, Application app) nothrow @nogc
+    if (is(I : const BaseInterface))
+{
+    // TODO: parse as mac address...?
+    if (!v.isString)
+        return "Invalid interface value";
+    const(char)[] s = v.asString;
+    if (BaseInterface i = getModule!InterfaceModule.findInterface(s))
+    {
+        r = cast(I)i;
+        static if (!is(Unqual!I == BaseInterface))
+            if (!r)
+                return tconcat("Requires ", I.TypeName, " interface, but ", i.name[], " is ", i.type[]);
+    }
+    return r ? null : tconcat("Interface does not exist: ", s);
+}
+
+import router.stream;
+const(char[]) convertVariant(S)(ref const Variant v, out S r, Application app) nothrow @nogc
+    if (is(S : const Stream))
+{
+    if (!v.isString)
+        return "Invalid stream value";
+    const(char)[] s = v.asString;
+    if (Stream stream = getModule!StreamModule.getStream(s))
+    {
+        r = cast(S)stream;
+        static if (!is(Unqual!S == Stream))
+            if (!r)
+                return tconcat("Requires ", S.TypeName, " stream, but ", s, " is ", stream.type[]);
+    }
+    return r ? null : tconcat("Stream does not exist: ", s);
+}
+
 
 // argument completions...
 // TODO: THESE NEED ADL STYLE LOOKUP!
+
+Array!String suggestCompletion(T : bool)(const(char)[] argumentText)
+{
+    Array!String completions = [ "true", "false", "yes", "no", "1", "0" ];
+    return completions;
+}
 
 Array!String suggestCompletion(E)(const(char)[] argumentText)
     if (is(E == enum))
@@ -628,5 +669,30 @@ Array!String suggestCompletion(T : Device)(const(char)[] argumentText)
         if (name.startsWith(argumentText))
             completions ~= name.makeString(defaultAllocator);
     }
+    return completions;
+}
+
+Array!String suggestCompletion(I)(const(char)[] argumentText)
+    if (is(I : const BaseInterface))
+{
+    Array!String completions;
+    foreach (n, i; getModule!InterfaceModule.interfaces)
+    {
+        static if (is(typeof(I.TypeName)))
+        {
+            if (i.type[] != I.TypeName)
+                continue;
+        }
+        completions ~= n;
+    }
+    return completions;
+}
+
+Array!String suggestCompletion(S)(const(char)[] argumentText)
+    if (is(S : const Stream))
+{
+    Array!String completions;
+    foreach (n, _; getModule!StreamModule.streams)
+        completions ~= n;
     return completions;
 }
