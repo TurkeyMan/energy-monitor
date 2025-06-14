@@ -140,6 +140,7 @@
     <DCompile Include="src\urt\array.d" />
     <DCompile Include="src\urt\async.d" />
     <DCompile Include="src\urt\attribute.d" />
+    <DCompile Include="src\urt\bigint.d" />
     <DCompile Include="src\urt\compiler.d" />
     <DCompile Include="src\urt\conv.d" />
     <DCompile Include="src\urt\crc.d" />
