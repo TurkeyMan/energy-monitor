@@ -330,9 +330,6 @@
     <DCompile Include="src\router\port\package.d">
       <Filter>src\router\port</Filter>
     </DCompile>
-    <DCompile Include="src\router\port\serial.d">
-      <Filter>src\router\port</Filter>
-    </DCompile>
     <DCompile Include="src\protocol\http\package.d">
       <Filter>src\protocol\http</Filter>
     </DCompile>
