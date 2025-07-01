@@ -582,6 +582,12 @@
     <DCompile Include="src\manager\collection.d">
       <Filter>src\manager</Filter>
     </DCompile>
+    <DCompile Include="src\router\iface\ethernet.d">
+      <Filter>src\router\iface</Filter>
+    </DCompile>
+    <DCompile Include="src\router\iface\wpan.d">
+      <Filter>src\router\iface</Filter>
+    </DCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
