@@ -22,7 +22,7 @@ nothrow @nogc:
 
     alias TypeName = StringLit!"zigbee";
 
-    ubyte[8] eui;
+    EUI64 eui;
 
     this(String name) nothrow @nogc
     {
