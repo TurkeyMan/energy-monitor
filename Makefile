@@ -10,7 +10,7 @@ TARGETDIR := bin/$(PLATFORM)_$(CONFIG)
 TARGETNAME := enms
 DEPFILE = $(OBJDIR)/$(TARGETNAME).d
 
-DFLAGS := $(DFLAGS) -preview=bitfields -preview=rvaluerefparam -preview=nosharedaccess -preview=in
+DFLAGS := $(DFLAGS) -preview=bitfields -preview=rvaluerefparam -preview=in #-preview=nosharedaccess <- TODO: fix this
 
 SOURCES := $(shell find "$(SRCDIR)" -type f -name '*.d')
 
