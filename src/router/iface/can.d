@@ -67,23 +67,12 @@ nothrow @nogc:
         => _stream;
     void stream(Stream value)
     {
-        // unhook from existing stream?
+        // TODO: unhook from existing stream...
 
         _stream = value;
 
-        if (!_stream)
-        {
-            if (_status.linkStatus != Status.Link.Down)
-            {
-                _status.linkStatusChangeTime = getSysTime();
-                _status.linkStatus = Status.Link.Down;
-            }
-        }
-        else if (_status.linkStatus != _stream.status.linkStatus)
-        {
-            _status.linkStatusChangeTime = getSysTime();
-            _status.linkStatus = _stream.status.linkStatus;
-        }
+        if (!_stream || !_stream.running)
+            restart();
     }
 
     CANInterfaceProtocol protocol() const pure
@@ -100,21 +89,24 @@ nothrow @nogc:
 
     // API...
 
+    override bool validate() const
+        => _stream !is null && _protocol == CANInterfaceProtocol.EBYTE;
+
+    override bool startup()
+    {
+        if (_stream.running)
+            return true;
+        return false;
+    }
+
     override void update()
     {
-        SysTime now = getSysTime();
+        if (!_stream.running)
+            return restart();
 
-        // check the link status
-        Status.Link streamStatus = stream.status.linkStatus;
-        if (streamStatus != status.linkStatus)
-        {
-            _status.linkStatus = streamStatus;
-            _status.linkStatusChangeTime = now;
-            if (streamStatus != Status.Link.Up)
-                ++_status.linkDowns;
-        }
-        if (!running)
-            return;
+        super.update();
+
+        SysTime now = getSysTime();
 
         enum LargestProtocolFrame = 13; // EBYTE proto has 13byte frames
 
@@ -124,7 +116,7 @@ nothrow @nogc:
         ptrdiff_t readOffset = tailBytes;
         ptrdiff_t length = tailBytes;
         tailBytes = 0;
-        read_loop: do
+        read_loop: while (true)
         {
             assert(length < LargestProtocolFrame);
 
@@ -207,7 +199,6 @@ nothrow @nogc:
             // we've eaten the whole buffer...
             length = 0;
         }
-        while (true);
     }
 
     protected override bool transmit(ref const Packet packet) nothrow @nogc
@@ -314,6 +305,8 @@ private:
 
     final void incomingPacket(ref const CANFrame frame, SysTime recvTime)
     {
+        debug assert(running, "Shouldn't receive packets while not running...?");
+
         version (DebugCANInterface)
             writeDebug("CAN packet received from interface '", name, "': id=", frame.id, " (", frame.data.length , ")[ ", cast(void[])frame.data[], " - ", frame.data.binToAscii(), " ]");
 

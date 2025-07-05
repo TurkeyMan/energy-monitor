@@ -14,11 +14,22 @@ public import manager.collection : collectionTypeInfo, CollectionTypeInfo;
 nothrow @nogc:
 
 
+enum WorkingState : ubyte
+{
+    Disabled,
+    InitFailed,
+    Validate,
+    Stopping,
+    Starting,
+    Restarting,
+    Running,
+}
+
 enum ClientStateSignal
 {
-    Destroyed,
     Online,
-    Offline
+    Offline,
+    Destroyed
 }
 
 struct Property
@@ -93,10 +104,11 @@ struct Property
 
 class BaseObject
 {
-    __gshared Property[5] Properties = [ Property.create!("type", type)(),
+    __gshared Property[6] Properties = [ Property.create!("type", type)(),
                                          Property.create!("name", name)(),
                                          Property.create!("disabled", disabled)(),
                                          Property.create!("comment", comment)(),
+                                         Property.create!("running", running)(),
                                          Property.create!("status", statusMessage)() ];
 nothrow @nogc:
 
@@ -138,45 +150,50 @@ nothrow @nogc:
     }
 
     final bool disabled() const pure
-        => _disabled;
+        => _state == WorkingState.Disabled || _state == WorkingState.Stopping;
     final void disabled(bool value)
     {
-        enable(!value);
+        if (_state >= WorkingState.Starting)
+            setState(WorkingState.Stopping);
+        else if (_state == WorkingState.Restarting)
+            _state = WorkingState.Stopping;
+        else
+            _state = WorkingState.Disabled;
     }
+
+    // TODO: PUT FINAL BACK WHEN EVERYTHING PORTED!
+    /+final+/ bool running() const pure
+        => _state == WorkingState.Running;
 
     // give a helpful status string, e.g. "Ready", "Disabled", "Error: <message>"
     const(char)[] statusMessage() const pure
-        => disabled ? "Disabled" : validate() ? "Invalid" : "Ready";
-
-
-    // Implement for derived types
-
-    // per-tick updates
-    void update()
     {
-    }
-
-    // validate configuration is in an operable state, update status if it's not
-    bool validate() const pure
-        => true;
-
-    // enable/disable methods; returns prior state before the call
-    abstract bool enable(bool enable = true);
-
-    final bool disable()
-        => enable(false);
-
-    final bool restart()
-    {
-        bool wasEnabled = !_disabled;
-        if (wasEnabled)
-            enable(false);
-        enable(true);
-        return wasEnabled;
+        final switch (_state)
+        {
+            case WorkingState.Disabled:
+            case WorkingState.Stopping:
+                return "Disabled";
+            case WorkingState.InitFailed:
+                return "Failed";
+            case WorkingState.Validate:
+                return "Invalid";
+            case WorkingState.Starting:
+                return "Starting";
+            case WorkingState.Restarting:
+                return "Restarting";
+            case WorkingState.Running:
+                return "Running";
+        }
     }
 
 
     // Object API...
+
+    final void restart()
+    {
+        if (_state >= WorkingState.Starting)
+            setState(WorkingState.Restarting);
+    }
 
     // return a list of properties that can be set on this object
     final const(Property*)[] properties() const
@@ -246,10 +263,90 @@ nothrow @nogc:
 protected:
     const CollectionTypeInfo* _typeInfo;
     size_t propsSet;
-    bool _disabled; // TODO: this unaligns the whole thing... maybe steal the top bit of propsSet?
+    WorkingState _state = WorkingState.Validate;
+
+    final void setState(WorkingState newState)
+    {
+        if (newState == _state)
+            return;
+
+        final switch (newState)
+        {
+            case WorkingState.Disabled:
+                _state = WorkingState.Disabled;
+                break;
+
+            case WorkingState.InitFailed:
+                _state = WorkingState.InitFailed;
+                break;
+
+            case WorkingState.Validate:
+                _state = WorkingState.Validate;
+                if (validate())
+                    goto case WorkingState.Starting;
+                break;
+
+            case WorkingState.Starting:
+                _state = WorkingState.Starting;
+                if (startup())
+                    goto case WorkingState.Running;
+                break;
+
+            case WorkingState.Restarting:
+                if (_state == WorkingState.Running)
+                    setOffline();
+                _state = WorkingState.Restarting;
+                goto shutdown;
+            case WorkingState.Stopping:
+                if (_state == WorkingState.Running)
+                    setOffline();
+                _state = WorkingState.Stopping;
+            shutdown:
+                setOffline();
+                if (shutdown())
+                {
+                    if (newState == WorkingState.Stopping)
+                        goto case WorkingState.Disabled;
+                    goto case WorkingState.Validate;
+                }
+                break;
+
+            case WorkingState.Running:
+                _state = WorkingState.Running;
+                setOnline();
+
+                // TODO: should we run the first update cycle immediately?
+                update();
+                break;
+        }
+    }
+
+    // validate configuration is in an operable state
+    bool validate() const
+        => true;
+
+    bool startup()
+        => true;
+
+    bool shutdown()
+        => true;
+
+    void update()
+    {
+    }
+
+    void setOnline()
+    {
+        signalStateChange(ClientStateSignal.Online);
+    }
+
+    void setOffline()
+    {
+        signalStateChange(ClientStateSignal.Offline);
+    }
 
     // sends a signal to all clients
-    void signalStateChange(ClientStateSignal signal)
+    final void signalStateChange(ClientStateSignal signal)
     {
         foreach (c; clients)
             c.clientSignal(this, signal);
@@ -269,6 +366,45 @@ private:
     String _name;
     String _comment;
     Array!BaseObject clients;
+
+    package void do_update()
+    {
+        final switch (_state)
+        {
+            case WorkingState.Disabled:
+                // do nothing...
+                return;
+
+            case WorkingState.InitFailed:
+                // implement backoff timer?
+               setState(WorkingState.Validate);
+                return;
+
+            case WorkingState.Validate:
+                if (validate())
+                    setState(WorkingState.Starting);
+                return;
+
+            case WorkingState.Starting:
+                if (startup())
+                    setState(WorkingState.Running);
+                break;
+
+            case WorkingState.Restarting:
+            case WorkingState.Stopping:
+                if (shutdown())
+                {
+                    if (_state == WorkingState.Restarting)
+                        setState(WorkingState.Validate);
+                    setState(WorkingState.Disabled);
+                }
+                break;
+
+            case WorkingState.Running:
+                update();
+                break;
+        }
+    }
 }
 
 

@@ -73,7 +73,7 @@ nothrow @nogc:
     void updateAll()
     {
         foreach (item; pool.values)
-            item.update();
+            item.do_update();
     }
 
     void add(BaseObject item)
