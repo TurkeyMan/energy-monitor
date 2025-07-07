@@ -17,7 +17,7 @@ struct SHA1Context
     uint datalen;
     uint[DigestElements] state;
 
-    alias transform = sha1Transform;
+    alias transform = sha1_transform;
 
     enum uint[DigestElements] initState = [ 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0 ];
 
@@ -36,7 +36,7 @@ struct SHA256Context
     uint datalen;
     uint[DigestElements] state;
 
-    alias transform = sha256Transform;
+    alias transform = sha256_transform;
 
     enum uint[DigestElements] initState = [ 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
                                             0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 ];
@@ -54,14 +54,14 @@ struct SHA256Context
 }
 
 
-void shaInit(Context)(ref Context ctx)
+void sha_init(Context)(ref Context ctx)
 {
     ctx.datalen = 0;
     ctx.bitlen = 0;
     ctx.state = Context.initState;
 }
 
-void shaUpdate(Context)(ref Context ctx, const void[] input)
+void sha_update(Context)(ref Context ctx, const void[] input)
 {
     const(ubyte)[] data = cast(ubyte[])input;
 
@@ -82,7 +82,7 @@ void shaUpdate(Context)(ref Context ctx, const void[] input)
     }
 }
 
-ubyte[Context.DigestLen] shaFinalise(Context)(ref Context ctx)
+ubyte[Context.DigestLen] sha_finalise(Context)(ref Context ctx)
 {
     uint i = ctx.datalen;
 
@@ -115,23 +115,23 @@ unittest
     import urt.encoding;
 
     SHA1Context ctx;
-    shaInit(ctx);
-    auto digest = shaFinalise(ctx);
+    sha_init(ctx);
+    auto digest = sha_finalise(ctx);
     assert(digest == Hex!"da39a3ee5e6b4b0d3255bfef95601890afd80709");
 
-    shaInit(ctx);
-    shaUpdate(ctx, "Hello, World!");
-    digest = shaFinalise(ctx);
+    sha_init(ctx);
+    sha_update(ctx, "Hello, World!");
+    digest = sha_finalise(ctx);
     assert(digest == Hex!"0a0a9f2a6772942557ab5355d76af442f8f65e01");
 
     SHA256Context ctx2;
-    shaInit(ctx2);
-    auto digest2 = shaFinalise(ctx2);
+    sha_init(ctx2);
+    auto digest2 = sha_finalise(ctx2);
     assert(digest2 == Hex!"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
-    shaInit(ctx2);
-    shaUpdate(ctx2, "Hello, World!");
-    digest2 = shaFinalise(ctx2);
+    sha_init(ctx2);
+    sha_update(ctx2, "Hello, World!");
+    digest2 = sha_finalise(ctx2);
     assert(digest2 == Hex!"dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f");
 }
 
@@ -141,7 +141,7 @@ private:
 uint ROTLEFT(uint a, uint b) => (a << b) | (a >> (32 - b));
 uint ROTRIGHT(uint a, uint b) => (a >> b) | (a << (32 - b));
 
-void sha1Transform(ref SHA1Context ctx, const ubyte[] data)
+void sha1_transform(ref SHA1Context ctx, const ubyte[] data)
 {
     uint a, b, c, d, e, i, j, t;
     uint[80] m = void;
@@ -204,7 +204,7 @@ void sha1Transform(ref SHA1Context ctx, const ubyte[] data)
     ctx.state[4] += e;
 }
 
-void sha256Transform(ref SHA256Context ctx, const ubyte[] data)
+void sha256_transform(ref SHA256Context ctx, const ubyte[] data)
 {
     static uint CH(uint x, uint y, uint z) => (x & y) ^ (~x & z);
     static uint MAJ(uint x, uint y, uint z) => (x & y) ^ (x & z) ^ (y & z);

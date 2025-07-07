@@ -115,7 +115,7 @@ nothrow @nogc:
                 if (!alreadyComplained)
                 {
                     alreadyComplained = true;
-                    writeError("Failed to bind socket for mDNS multicast: ", r.get_SocketResult());
+                    writeError("Failed to bind socket for mDNS multicast: ", r.socket_result());
                 }
                 return;
             }
@@ -135,10 +135,10 @@ nothrow @nogc:
         InetAddress sender;
         size_t recv;
         Result r = socket.recvfrom(buffer, MsgFlags.None, &sender, &recv);
-        if (!r && r.get_SocketResult != SocketResult.WouldBlock)
+        if (!r && r.socket_result != SocketResult.WouldBlock)
         {
             // TODO: what is this case? should we reset the connection?
-            writeError("mDNS: recvfrom failed: ", r.get_SocketResult());
+            writeError("mDNS: recvfrom failed: ", r.socket_result());
             return;
         }
 
@@ -215,7 +215,7 @@ nothrow @nogc:
                 if (!r)
                 {
                     // TODO: what is this case? should we reset the connection?
-                    writeError("mDNS: sendto failed: ", r.get_SocketResult());
+                    writeError("mDNS: sendto failed: ", r.socket_result());
                     return;
                 }
 

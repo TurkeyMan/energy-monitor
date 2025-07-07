@@ -4,20 +4,14 @@ import urt.crc;
 import urt.endian;
 import urt.hash;
 import urt.mem.allocator;
+import urt.result;
 
-alias zlib_crc = calculateCRC!(Algorithm.CRC32_ISO_HDLC);
+alias zlib_crc = calculate_crc!(Algorithm.CRC32_ISO_HDLC);
 
 nothrow @nogc:
 
 
 // this is a port of tinflate (tiny inflate)
-
-enum error_code : int
-{
-    OK         = 0,  /**< Success */
-    DATA_ERROR = -3, /**< Input error */
-    BUF_ERROR  = -5  /**< Not enough room for output */
-}
 
 enum gzip_flag : ubyte
 {
@@ -28,91 +22,91 @@ enum gzip_flag : ubyte
     FCOMMENT = 16
 }
 
-error_code zlib_uncompress(const(void)[] source, void[] dest, out size_t destLen)
+Result zlib_uncompress(const(void)[] source, void[] dest, out size_t destLen)
 {
     const ubyte* src = cast(const ubyte*)source.ptr;
     uint sourceLen = cast(uint)source.length;
 
     if (sourceLen < 6)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     ubyte cmf = src[0];
     ubyte flg = src[1];
 
     // check checksum
     if ((256 * cmf + flg) % 31)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     // check method is deflate
     if ((cmf & 0x0F) != 8)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     // check window size is valid
     if ((cmf >> 4) > 7)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     // check there is no preset dictionary
     if (flg & 0x20)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
-    if (uncompress((src + 2)[0 .. sourceLen - 6], dest, destLen) != error_code.OK)
-        return error_code.DATA_ERROR;
+    if (!uncompress((src + 2)[0 .. sourceLen - 6], dest, destLen))
+        return InternalResult.data_error;
 
     if (adler32(dest[0 .. destLen]) != loadBigEndian!uint(cast(uint*)&src[sourceLen - 4]))
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
-    return error_code.OK;
+    return InternalResult.success;
 }
 
-error_code gzip_uncompressed_length(const(void)[] source, out size_t destLen)
+Result gzip_uncompressed_length(const(void)[] source, out size_t destLen)
 {
     const ubyte* src = cast(const ubyte*)source.ptr;
     uint sourceLen = cast(uint)source.length;
 
     if (sourceLen < 18)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     // check id bytes
     if (src[0] != 0x1F || src[1] != 0x8B)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     // check method is deflate
     if (src[2] != 8)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     ubyte flg = src[3];
 
     // check that reserved bits are zero
     if (flg & 0xE0)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     // get decompressed length
     destLen = loadLittleEndian!uint(cast(uint*)(src + sourceLen - 4));
 
-    return error_code.OK;
+    return InternalResult.success;
 }
 
-error_code gzip_uncompress(const(void)[] source, void[] dest, out size_t destLen)
+Result gzip_uncompress(const(void)[] source, void[] dest, out size_t destLen)
 {
     const ubyte* src = cast(const ubyte*)source.ptr;
     uint sourceLen = cast(uint)source.length;
 
     if (sourceLen < 18)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     // check id bytes
     if (src[0] != 0x1F || src[1] != 0x8B)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     // check method is deflate
     if (src[2] != 8)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     ubyte flg = src[3];
 
     // check that reserved bits are zero
     if (flg & 0xE0)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     // skip base header of 10 bytes
     const(ubyte)* start = src + 10;
@@ -123,7 +117,7 @@ error_code gzip_uncompress(const(void)[] source, void[] dest, out size_t destLen
         uint xlen = loadLittleEndian!ushort(cast(ushort*)start);
 
         if (xlen > sourceLen - 12)
-            return error_code.DATA_ERROR;
+            return InternalResult.data_error;
 
         start += xlen + 2;
     }
@@ -134,7 +128,7 @@ error_code gzip_uncompress(const(void)[] source, void[] dest, out size_t destLen
         do
         {
             if (start - src >= sourceLen)
-                return error_code.DATA_ERROR;
+                return InternalResult.data_error;
         }
         while (*start++);
     }
@@ -145,7 +139,7 @@ error_code gzip_uncompress(const(void)[] source, void[] dest, out size_t destLen
         do
         {
             if (start - src >= sourceLen)
-                return error_code.DATA_ERROR;
+                return InternalResult.data_error;
         }
         while (*start++);
     }
@@ -156,12 +150,12 @@ error_code gzip_uncompress(const(void)[] source, void[] dest, out size_t destLen
         uint hcrc;
 
         if (start - src > sourceLen - 2)
-            return error_code.DATA_ERROR;
+            return InternalResult.data_error;
 
         hcrc = loadLittleEndian!ushort(cast(ushort*)start);
 
         if (hcrc != (zlib_crc(src[0 .. start - src]) & 0x0000FFFF))
-            return error_code.DATA_ERROR;
+            return InternalResult.data_error;
 
         start += 2;
     }
@@ -169,25 +163,25 @@ error_code gzip_uncompress(const(void)[] source, void[] dest, out size_t destLen
     // get decompressed length
     uint dlen = loadLittleEndian!uint(cast(uint*)(src + sourceLen - 4));
     if (dlen > dest.length)
-        return error_code.BUF_ERROR;
+        return InternalResult.buffer_too_small;
 
     if ((src + sourceLen) - start < 8)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
-    if (uncompress(start[0 .. (src + sourceLen) - start - 8], dest, destLen) != error_code.OK)
-        return error_code.DATA_ERROR;
+    if (!uncompress(start[0 .. (src + sourceLen) - start - 8], dest, destLen))
+        return InternalResult.data_error;
 
     if (destLen != dlen)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     // check CRC32 checksum
     if (zlib_crc(dest[0..dlen]) != loadLittleEndian!uint(cast(uint*)(src + sourceLen - 8)))
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
-    return error_code.OK;
+    return InternalResult.success;
 }
 
-error_code uncompress(const(void)[] source, void[] dest, out size_t destLen)
+Result uncompress(const(void)[] source, void[] dest, out size_t destLen)
 {
     data d;
 
@@ -211,7 +205,7 @@ error_code uncompress(const(void)[] source, void[] dest, out size_t destLen)
         uint btype = getbits(&d, 2);
 
         // Decompress block
-        error_code res;
+        Result res;
         switch (btype)
         {
             case 0:
@@ -227,20 +221,20 @@ error_code uncompress(const(void)[] source, void[] dest, out size_t destLen)
                 res = inflate_dynamic_block(&d);
                 break;
             default:
-                res = error_code.DATA_ERROR;
+                res = InternalResult.data_error;
                 break;
         }
-        if (res != error_code.OK)
+        if (!res)
             return res;
     }
     while (!bfinal);
 
     if (d.overflow)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     destLen = d.dest - d.dest_start;
 
-    return error_code.OK;
+    return InternalResult.success;
 }
 
 
@@ -606,7 +600,7 @@ void build_fixed_trees(tree *lt, tree *dt)
 }
 
 /* Given an array of code lengths, build a tree */
-error_code build_tree(tree *t, const(ubyte)* lengths, ushort num)
+Result build_tree(tree *t, const(ubyte)* lengths, ushort num)
 {
     ushort[16] offs = void;
     uint available;
@@ -638,7 +632,7 @@ error_code build_tree(tree *t, const(ubyte)* lengths, ushort num)
 
         /* Check length contains no more codes than available */
         if (used > available)
-            return error_code.DATA_ERROR;
+            return InternalResult.data_error;
         available = 2 * (available - used);
 
         offs[i] = num_codes;
@@ -650,7 +644,7 @@ error_code build_tree(tree *t, const(ubyte)* lengths, ushort num)
     * code that it has length 1
     */
     if ((num_codes > 1 && available > 0) || (num_codes == 1 && t.counts[1] != 1))
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     /* Fill in symbols sorted by code */
     for (i = 0; i < num; ++i)
@@ -669,7 +663,7 @@ error_code build_tree(tree *t, const(ubyte)* lengths, ushort num)
         t.symbols[1] = cast(ushort)(t.max_sym + 1);
     }
 
-    return error_code.OK;
+    return InternalResult.success;
 }
 
 /* -- Decode functions -- */
@@ -749,7 +743,7 @@ int decode_symbol(data *d, const tree *t)
     return t.symbols[base + offs];
 }
 
-error_code decode_trees(data *d, tree *lt, tree *dt)
+Result decode_trees(data *d, tree *lt, tree *dt)
 {
     /* Special ordering of code length codes */
     __gshared immutable ubyte[19] clcidx = [ 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 ];
@@ -776,7 +770,7 @@ error_code decode_trees(data *d, tree *lt, tree *dt)
     * See also: https://github.com/madler/zlib/issues/82
     */
     if (hlit > 286 || hdist > 30)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     for (i = 0; i < 19; ++i)
         lengths[i] = 0;
@@ -791,13 +785,13 @@ error_code decode_trees(data *d, tree *lt, tree *dt)
     }
 
     /* Build code length tree (in literal/length tree to save space) */
-    error_code res = build_tree(lt, lengths.ptr, 19);
-    if (res != error_code.OK)
+    Result res = build_tree(lt, lengths.ptr, 19);
+    if (res != InternalResult.success)
         return res;
 
     /* Check code length tree is not empty */
     if (lt.max_sym == -1)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     /* Decode code lengths for the dynamic trees */
     for (num = 0; num < hlit + hdist; )
@@ -805,14 +799,14 @@ error_code decode_trees(data *d, tree *lt, tree *dt)
         int sym = decode_symbol(d, lt);
 
         if (sym > lt.max_sym)
-            return error_code.DATA_ERROR;
+            return InternalResult.data_error;
 
         switch (sym)
         {
             case 16:
                 /* Copy previous code length 3-6 times (read 2 bits) */
                 if (num == 0) {
-                    return error_code.DATA_ERROR;
+                    return InternalResult.data_error;
                 }
                 sym = lengths[num - 1];
                 length = getbits_base(d, 2, 3);
@@ -834,7 +828,7 @@ error_code decode_trees(data *d, tree *lt, tree *dt)
         }
 
         if (length > hlit + hdist - num)
-            return error_code.DATA_ERROR;
+            return InternalResult.data_error;
 
         while (length--)
             lengths[num++] = cast(ubyte)sym;
@@ -842,26 +836,26 @@ error_code decode_trees(data *d, tree *lt, tree *dt)
 
     /* Check EOB symbol is present */
     if (lengths[256] == 0)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     /* Build dynamic trees */
     res = build_tree(lt, lengths.ptr, hlit);
 
-    if (res != error_code.OK)
+    if (res != InternalResult.success)
         return res;
 
     res = build_tree(dt, lengths.ptr + hlit, hdist);
 
-    if (res != error_code.OK)
+    if (res != InternalResult.success)
         return res;
 
-    return error_code.OK;
+    return InternalResult.success;
 }
 
 /* -- Block inflate functions -- */
 
 /* Given a stream and two trees, inflate a block of data */
-error_code inflate_block_data(data *d, tree *lt, tree *dt)
+Result inflate_block_data(data *d, tree *lt, tree *dt)
 {
     /* Extra bits and base tables for length codes */
     __gshared immutable ubyte[30] length_bits = [ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 127 ];
@@ -877,12 +871,12 @@ error_code inflate_block_data(data *d, tree *lt, tree *dt)
 
         /* Check for overflow in bit reader */
         if (d.overflow)
-            return error_code.DATA_ERROR;
+            return InternalResult.data_error;
 
         if (sym < 256)
         {
             if (d.dest == d.dest_end)
-                return error_code.BUF_ERROR;
+                return InternalResult.buffer_too_small;
             *d.dest++ = cast(ubyte)sym;
         }
         else
@@ -892,11 +886,11 @@ error_code inflate_block_data(data *d, tree *lt, tree *dt)
 
             /* Check for end of block */
             if (sym == 256)
-                return error_code.OK;
+                return InternalResult.success;
 
             /* Check sym is within range and distance tree is not empty */
             if (sym > lt.max_sym || sym - 257 > 28 || dt.max_sym == -1)
-                return error_code.DATA_ERROR;
+                return InternalResult.data_error;
 
             sym -= 257;
 
@@ -907,16 +901,16 @@ error_code inflate_block_data(data *d, tree *lt, tree *dt)
 
             /* Check dist is within range */
             if (dist > dt.max_sym || dist > 29)
-                return error_code.DATA_ERROR;
+                return InternalResult.data_error;
 
             /* Possibly get more bits from distance code */
             offs = getbits_base(d, dist_bits[dist], dist_base[dist]);
 
             if (offs > d.dest - d.dest_start)
-                return error_code.DATA_ERROR;
+                return InternalResult.data_error;
 
             if (d.dest_end - d.dest < length)
-                return error_code.BUF_ERROR;
+                return InternalResult.buffer_too_small;
 
             /* Copy match */
             for (i = 0; i < length; ++i)
@@ -928,10 +922,10 @@ error_code inflate_block_data(data *d, tree *lt, tree *dt)
 }
 
 /* Inflate an uncompressed block of data */
-error_code inflate_uncompressed_block(data *d)
+Result inflate_uncompressed_block(data *d)
 {
     if (d.source_end - d.source < 4)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     /* Get length */
     uint length = loadLittleEndian!ushort(cast(ushort*)d.source);
@@ -941,15 +935,15 @@ error_code inflate_uncompressed_block(data *d)
 
     /* Check length */
     if (length != (~invlength & 0x0000FFFF))
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     d.source += 4;
 
     if (d.source_end - d.source < length)
-        return error_code.DATA_ERROR;
+        return InternalResult.data_error;
 
     if (d.dest_end - d.dest < length)
-        return error_code.BUF_ERROR;
+        return InternalResult.buffer_too_small;
 
     /* Copy block */
     while (length--)
@@ -959,19 +953,19 @@ error_code inflate_uncompressed_block(data *d)
     d.tag = 0;
     d.bitcount = 0;
 
-    return error_code.OK;
+    return InternalResult.success;
 }
 
-error_code inflate_fixed_block(data *d)
+Result inflate_fixed_block(data *d)
 {
     build_fixed_trees(&d.ltree, &d.dtree);
     return inflate_block_data(d, &d.ltree, &d.dtree);
 }
 
-error_code inflate_dynamic_block(data *d)
+Result inflate_dynamic_block(data *d)
 {
-    error_code res = decode_trees(d, &d.ltree, &d.dtree);
-    if (res != error_code.OK)
+    Result res = decode_trees(d, &d.ltree, &d.dtree);
+    if (res != InternalResult.success)
         return res;
     return inflate_block_data(d, &d.ltree, &d.dtree);
 }

@@ -61,7 +61,7 @@ else
 
 private:
 
-package(urt) void setupAssertHandler()
+package(urt) void setup_assert_handler()
 {
     import core.exception : assertHandler;
     assertHandler = &urt_assert;

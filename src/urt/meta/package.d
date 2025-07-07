@@ -6,39 +6,47 @@ alias Alias(T) = T;
 
 alias AliasSeq(TList...) = TList;
 
-template intForWidth(size_t width, bool signed = false)
+template IntForWidth(size_t width, bool signed = false)
 {
     static if (width <= 8 && !signed)
-        alias intForWidth = ubyte;
+        alias IntForWidth = ubyte;
     else static if (width <= 8 && signed)
-        alias intForWidth = byte;
+        alias IntForWidth = byte;
     else static if (width <= 16 && !signed)
-        alias intForWidth = ushort;
+        alias IntForWidth = ushort;
     else static if (width <= 16 && signed)
-        alias intForWidth = short;
+        alias IntForWidth = short;
     else static if (width <= 32 && !signed)
-        alias intForWidth = uint;
+        alias IntForWidth = uint;
     else static if (width <= 32 && signed)
-        alias intForWidth = int;
+        alias IntForWidth = int;
     else static if (width <= 64 && !signed)
-        alias intForWidth = ulong;
+        alias IntForWidth = ulong;
     else static if (width <= 64 && signed)
-        alias intForWidth = long;
+        alias IntForWidth = long;
 }
 
-template staticMap(alias fun, args...)
+template STATIC_MAP(alias fun, args...)
 {
-    alias staticMap = AliasSeq!();
+    alias STATIC_MAP = AliasSeq!();
     static foreach (arg; args)
-        staticMap = AliasSeq!(staticMap, fun!arg);
+        STATIC_MAP = AliasSeq!(STATIC_MAP, fun!arg);
 }
 
-template staticIndexOf(args...)
+template STATIC_FILTER(alias filter, args...)
+{
+    alias STATIC_FILTER = AliasSeq!();
+    static foreach (arg; args)
+        static if (filter!arg)
+            STATIC_FILTER = AliasSeq!(STATIC_FILTER, arg);
+}
+
+template static_index_of(args...)
     if (args.length >= 1)
 {
-    enum staticIndexOf = {
+    enum static_index_of = {
         static foreach (idx, arg; args[1 .. $])
-            static if (isSame!(args[0], arg))
+            static if (is_same!(args[0], arg))
                 // `if (__ctfe)` is redundant here but avoids the "Unreachable code" warning.
                 if (__ctfe) return idx;
         return -1;
@@ -63,8 +71,8 @@ template EnumKeys(E)
     private alias EnumStrings = __traits(allMembers, E);
 }
 
-E enumFromString(E)(const(char)[] key)
-if (is(E == enum))
+E enum_from_string(E)(const(char)[] key)
+    if (is(E == enum))
 {
     foreach (i, k; EnumKeys!E)
         if (key[] == k[])
@@ -75,16 +83,16 @@ if (is(E == enum))
 
 private:
 
-template isSame(alias a, alias b)
+template is_same(alias a, alias b)
 {
     static if (!is(typeof(&a && &b)) // at least one is an rvalue
-               && __traits(compiles, { enum isSame = a == b; })) // c-t comparable
-        enum isSame = a == b;
+               && __traits(compiles, { enum is_same = a == b; })) // c-t comparable
+        enum is_same = a == b;
     else
-        enum isSame = __traits(isSame, a, b);
+        enum is_same = __traits(isSame, a, b);
 }
 // TODO: remove after https://github.com/dlang/dmd/pull/11320 and https://issues.dlang.org/show_bug.cgi?id=21889 are fixed
-template isSame(A, B)
+template is_same(A, B)
 {
-    enum isSame = is(A == B);
+    enum is_same = is(A == B);
 }

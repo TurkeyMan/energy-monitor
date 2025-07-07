@@ -56,9 +56,9 @@ struct CacheString
         import urt.hash;
 
         static if (size_t.sizeof == 4)
-            return fnv1aHash(cast(ubyte[])toString());
+            return fnv1a(cast(ubyte[])toString());
         else
-            return fnv1aHash64(cast(ubyte[])toString());
+            return fnv1a64(cast(ubyte[])toString());
     }
 
 private:

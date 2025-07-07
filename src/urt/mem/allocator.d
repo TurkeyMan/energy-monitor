@@ -356,12 +356,12 @@ class Mallocator : NoGCAllocator
 
     override void[] alloc(size_t size, size_t alignment = DefaultAlign) nothrow @nogc
     {
-        return urt.mem.alloc.allocAligned(size, alignment);
+        return urt.mem.alloc.alloc_aligned(size, alignment);
     }
 
     override void[] realloc(void[] mem, size_t newSize, size_t alignment = DefaultAlign) nothrow @nogc
     {
-        return urt.mem.alloc.reallocAligned(mem, newSize, alignment);
+        return urt.mem.alloc.realloc_aligned(mem, newSize, alignment);
     }
 
     override void[] expand(void[] mem, size_t newSize) nothrow
@@ -371,7 +371,7 @@ class Mallocator : NoGCAllocator
 
     override void free(void[] mem) nothrow @nogc
     {
-        urt.mem.alloc.freeAligned(mem);
+        urt.mem.alloc.free_aligned(mem);
     }
 
 private:

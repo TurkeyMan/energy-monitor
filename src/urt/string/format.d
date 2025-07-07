@@ -1,6 +1,6 @@
 module urt.string.format;
 
-import urt.conv : parseIntFast;
+import urt.conv : parse_int_fast;
 import urt.string;
 import urt.traits;
 import urt.util;
@@ -269,24 +269,24 @@ struct DefFormat(T)
         }
         else static if (is(T == double) || is(T == float))
         {
-            import urt.conv : formatFloat, formatInt;
+            import urt.conv : format_float, format_int;
 
             char[16] tmp = void;
             if (format.length && format[0] == '*')
             {
                 bool success;
-                size_t arg = format[1..$].parseIntFast(success);
+                size_t arg = format[1..$].parse_int_fast(success);
                 if (!success || !formatArgs[arg].canInt)
                     return -2;
                 size_t width = formatArgs[arg].getInt;
-                size_t len = width.formatInt(tmp);
+                size_t len = width.format_int(tmp);
                 format = tmp[0..len];
             }
-            return formatFloat(value, buffer, format);
+            return format_float(value, buffer, format);
         }
         else static if (is(T == ulong) || is(T == long))
         {
-            import urt.conv : formatInt, formatUint;
+            import urt.conv : format_int, format_uint;
 
             // TODO: what formats are interesting for ints?
 
@@ -318,7 +318,7 @@ struct DefFormat(T)
             if (format.length && format[0].isNumeric)
             {
                 bool success;
-                padding = format.parseIntFast(success);
+                padding = format.parse_int_fast(success);
                 if (varLen)
                 {
                     if (padding < 0 || !formatArgs[padding].canInt)
@@ -344,9 +344,9 @@ struct DefFormat(T)
             }
 
             static if (is(T == long))
-                size_t len = formatInt(value, buffer, base, cast(uint)padding, leadingZeroes ? '0' : ' ', showSign);
+                size_t len = format_int(value, buffer, base, cast(uint)padding, leadingZeroes ? '0' : ' ', showSign);
             else
-                size_t len = formatUint(value, buffer, base, cast(uint)padding, leadingZeroes ? '0' : ' ');
+                size_t len = format_uint(value, buffer, base, cast(uint)padding, leadingZeroes ? '0' : ' ');
 
             if (toLower && len > 0)
             {
@@ -397,7 +397,7 @@ struct DefFormat(T)
             if (format.length && format[0].isNumeric)
             {
                 bool success;
-                width = format.parseIntFast(success);
+                width = format.parse_int_fast(success);
                 if (varLen)
                 {
                     if (width < 0 || !formatArgs[width].canInt)
@@ -453,12 +453,12 @@ struct DefFormat(T)
             if (format.length && format[0].isNumeric)
             {
                 bool success;
-                grp1 = cast(int)format.parseIntFast(success);
+                grp1 = cast(int)format.parse_int_fast(success);
                 if (success && format.length > 0 && format[0] == ':' &&
                                format.length > 1 && format[1].isNumeric)
                 {
                     format.popFront();
-                    grp2 = cast(int)format.parseIntFast(success);
+                    grp2 = cast(int)format.parse_int_fast(success);
                 }
                 if (!success)
                     return -2;
@@ -744,7 +744,7 @@ ptrdiff_t parseFormat(ref const(char)[] format, ref char[] buffer, const(FormatA
 
         // get the arg index
         bool success;
-        arg = format.parseIntFast(success);
+        arg = format.parse_int_fast(success);
         if (!success)
         {
             assert(false, "Invalid format string: Number expected!");
@@ -807,7 +807,7 @@ ptrdiff_t parseFormat(ref const(char)[] format, ref char[] buffer, const(FormatA
 //            }
 
             bool success;
-            ptrdiff_t index = formatSpec.parseIntFast(success);
+            ptrdiff_t index = formatSpec.parse_int_fast(success);
 //            if (varRef)
 //            {
 //                if (arg < 0 || !args[arg].canInt)

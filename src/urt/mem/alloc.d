@@ -11,7 +11,7 @@ void[] alloc(size_t size) nothrow @nogc
     return malloc(size)[0 .. size];
 }
 
-void[] allocAligned(size_t size, size_t alignment) nothrow @nogc
+void[] alloc_aligned(size_t size, size_t alignment) nothrow @nogc
 {
     import urt.util : isPowerOf2, max;
     alignment = max(alignment, (void*).sizeof);
@@ -60,24 +60,24 @@ void[] realloc(void[] mem, size_t newSize) nothrow @nogc
     return core.stdc.stdlib.realloc(mem.ptr, newSize)[0 .. newSize];
 }
 
-void[] reallocAligned(void[] mem, size_t newSize, size_t alignment) nothrow @nogc
+void[] realloc_aligned(void[] mem, size_t newSize, size_t alignment) nothrow @nogc
 {
     import urt.util : isPowerOf2, min, max;
 
     alignment = max(alignment, (void*).sizeof);
     assert(isPowerOf2(alignment), "Alignment must be a power of two!");
 
-    void[] newAlloc = newSize > 0 ? allocAligned(newSize, alignment) : null;
+    void[] newAlloc = newSize > 0 ? alloc_aligned(newSize, alignment) : null;
     if (newAlloc !is null && mem !is null)
     {
         size_t toCopy = min(mem.length, newSize);
         newAlloc[0 .. toCopy] = mem[0 .. toCopy];
     }
-    freeAligned(mem);
+    free_aligned(mem);
     return newAlloc;
 }
 
-// NOTE: This function is only compatible with allocAligned!
+// NOTE: This function is only compatible with alloc_aligned!
 void[] expand(void[] mem, size_t newSize) nothrow @nogc
 {
     version (Windows)
@@ -107,7 +107,7 @@ void free(void[] mem) nothrow @nogc
     core.stdc.stdlib.free(mem.ptr);
 }
 
-void freeAligned(void[] mem) nothrow @nogc
+void free_aligned(void[] mem) nothrow @nogc
 {
     version (Windows)
     {
@@ -140,11 +140,11 @@ size_t memsize(void* ptr) nothrow @nogc
 
 unittest
 {
-    void[] mem = allocAligned(16, 8);
+    void[] mem = alloc_aligned(16, 8);
     size_t s = memsize(mem.ptr);
     mem = expand(mem, 8);
     mem = expand(mem, 16);
-    freeAligned(mem);
+    free_aligned(mem);
 }
 
 

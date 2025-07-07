@@ -55,7 +55,7 @@ private:
         rng.state = rng.state * PCG_DEFAULT_MULTIPLIER_64 + rng.inc;
     }
 
-    package void initRand()
+    package void init_rand()
     {
         import urt.time;
         srand(getTime().ticks, cast(size_t)&globalRand);

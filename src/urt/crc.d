@@ -1,6 +1,6 @@
 module urt.crc;
 
-import urt.meta : intForWidth;
+import urt.meta : IntForWidth;
 import urt.traits : isUnsignedInt;
 
 nothrow @nogc:
@@ -41,10 +41,10 @@ struct CRCParams
 }
 
 alias CRCTable(Algorithm algo) = CRCTable!(paramTable[algo].width, paramTable[algo].poly, paramTable[algo].reflect);
-alias CRCType(Algorithm algo) = intForWidth!(paramTable[algo].width);
+alias CRCType(Algorithm algo) = IntForWidth!(paramTable[algo].width);
 
 // compute a CRC with runtime parameters
-T calculateCRC(T = uint)(const void[] data, ref const CRCParams params, ref const T[256] table) pure
+T calculate_crc(T = uint)(const void[] data, ref const CRCParams params, ref const T[256] table) pure
     if (isUnsignedInt!T)
 {
     assert(params.width <= T.sizeof*8, "T is too small for the CRC width");
@@ -68,7 +68,7 @@ T calculateCRC(T = uint)(const void[] data, ref const CRCParams params, ref cons
 }
 
 // compute a CRC with hard-coded parameters
-T calculateCRC(Algorithm algo, T = CRCType!algo)(const void[] data, T initial = cast(T)paramTable[algo].initial^paramTable[algo].finalXor) pure
+T calculate_crc(Algorithm algo, T = CRCType!algo)(const void[] data, T initial = cast(T)paramTable[algo].initial^paramTable[algo].finalXor) pure
     if (isUnsignedInt!T)
 {
     enum CRCParams params = paramTable[algo];
@@ -98,7 +98,7 @@ T calculateCRC(Algorithm algo, T = CRCType!algo)(const void[] data, T initial = 
 }
 
 // computes 2 CRC's for 2 points in the data stream...
-T calculateCRC_2(Algorithm algo, T = intForWidth!(paramTable[algo].width*2))(const void[] data, uint earlyOffset) pure
+T calculate_crc_2(Algorithm algo, T = IntForWidth!(paramTable[algo].width*2))(const void[] data, uint earlyOffset) pure
     if (isUnsignedInt!T)
 {
     enum CRCParams params = paramTable[algo];
@@ -151,7 +151,7 @@ done:
 }
 
 
-T[256] generateCRCTable(T)(ref const CRCParams params) pure
+T[256] generate_crc_table(T)(ref const CRCParams params) pure
     if (isUnsignedInt!T)
 {
     enum typeWidth = T.sizeof * 8;
@@ -189,23 +189,23 @@ unittest
 {
     immutable ubyte[9] checkData = ['1','2','3','4','5','6','7','8','9'];
 
-    assert(calculateCRC!(Algorithm.CRC16_MODBUS)(checkData[]) == paramTable[Algorithm.CRC16_MODBUS].check);
-    assert(calculateCRC!(Algorithm.CRC16_EZSP)(checkData[]) == paramTable[Algorithm.CRC16_EZSP].check);
-    assert(calculateCRC!(Algorithm.CRC16_KERMIT)(checkData[]) == paramTable[Algorithm.CRC16_KERMIT].check);
-    assert(calculateCRC!(Algorithm.CRC16_USB)(checkData[]) == paramTable[Algorithm.CRC16_USB].check);
-    assert(calculateCRC!(Algorithm.CRC16_XMODEM)(checkData[]) == paramTable[Algorithm.CRC16_XMODEM].check);
-    assert(calculateCRC!(Algorithm.CRC16_ISO_HDLC)(checkData[]) == paramTable[Algorithm.CRC16_ISO_HDLC].check);
-    assert(calculateCRC!(Algorithm.CRC16_DNP)(checkData[]) == paramTable[Algorithm.CRC16_DNP].check);
-    assert(calculateCRC!(Algorithm.CRC32_ISO_HDLC)(checkData[]) == paramTable[Algorithm.CRC32_ISO_HDLC].check);
-    assert(calculateCRC!(Algorithm.CRC32_CASTAGNOLI)(checkData[]) == paramTable[Algorithm.CRC32_CASTAGNOLI].check);
+    assert(calculate_crc!(Algorithm.CRC16_MODBUS)(checkData[]) == paramTable[Algorithm.CRC16_MODBUS].check);
+    assert(calculate_crc!(Algorithm.CRC16_EZSP)(checkData[]) == paramTable[Algorithm.CRC16_EZSP].check);
+    assert(calculate_crc!(Algorithm.CRC16_KERMIT)(checkData[]) == paramTable[Algorithm.CRC16_KERMIT].check);
+    assert(calculate_crc!(Algorithm.CRC16_USB)(checkData[]) == paramTable[Algorithm.CRC16_USB].check);
+    assert(calculate_crc!(Algorithm.CRC16_XMODEM)(checkData[]) == paramTable[Algorithm.CRC16_XMODEM].check);
+    assert(calculate_crc!(Algorithm.CRC16_ISO_HDLC)(checkData[]) == paramTable[Algorithm.CRC16_ISO_HDLC].check);
+    assert(calculate_crc!(Algorithm.CRC16_DNP)(checkData[]) == paramTable[Algorithm.CRC16_DNP].check);
+    assert(calculate_crc!(Algorithm.CRC32_ISO_HDLC)(checkData[]) == paramTable[Algorithm.CRC32_ISO_HDLC].check);
+    assert(calculate_crc!(Algorithm.CRC32_CASTAGNOLI)(checkData[]) == paramTable[Algorithm.CRC32_CASTAGNOLI].check);
 
     // check that rolling CRC works...
-    ushort crc = calculateCRC!(Algorithm.CRC16_MODBUS)(checkData[0 .. 5]);
-    assert(calculateCRC!(Algorithm.CRC16_MODBUS)(checkData[5 .. 9], crc) == paramTable[Algorithm.CRC16_MODBUS].check);
-           crc = calculateCRC!(Algorithm.CRC16_ISO_HDLC)(checkData[0 .. 5]);
-    assert(calculateCRC!(Algorithm.CRC16_ISO_HDLC)(checkData[5 .. 9], crc) == paramTable[Algorithm.CRC16_ISO_HDLC].check);
-    uint crc32 = calculateCRC!(Algorithm.CRC32_ISO_HDLC)(checkData[0 .. 5]);
-    assert(calculateCRC!(Algorithm.CRC32_ISO_HDLC)(checkData[5 .. 9], crc32) == paramTable[Algorithm.CRC32_ISO_HDLC].check);
+    ushort crc = calculate_crc!(Algorithm.CRC16_MODBUS)(checkData[0 .. 5]);
+    assert(calculate_crc!(Algorithm.CRC16_MODBUS)(checkData[5 .. 9], crc) == paramTable[Algorithm.CRC16_MODBUS].check);
+           crc = calculate_crc!(Algorithm.CRC16_ISO_HDLC)(checkData[0 .. 5]);
+    assert(calculate_crc!(Algorithm.CRC16_ISO_HDLC)(checkData[5 .. 9], crc) == paramTable[Algorithm.CRC16_ISO_HDLC].check);
+    uint crc32 = calculate_crc!(Algorithm.CRC32_ISO_HDLC)(checkData[0 .. 5]);
+    assert(calculate_crc!(Algorithm.CRC32_ISO_HDLC)(checkData[5 .. 9], crc32) == paramTable[Algorithm.CRC32_ISO_HDLC].check);
 }
 
 
@@ -238,5 +238,5 @@ T reflect(T)(T value, ubyte bits)
 // this minimises the number of table instantiations
 template CRCTable(uint width, uint poly, bool reflect)
 {
-    __gshared immutable CRCTable = generateCRCTable!(intForWidth!width)(CRCParams(width, reflect, poly, 0, 0, 0));
+    __gshared immutable CRCTable = generate_crc_table!(IntForWidth!width)(CRCParams(width, reflect, poly, 0, 0, 0));
 }

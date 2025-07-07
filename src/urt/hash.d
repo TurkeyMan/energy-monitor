@@ -6,10 +6,10 @@ version = BranchIsFasterThanMod;
 nothrow @nogc:
 
 
-alias fnv1aHash = fnv1Hash!(uint, true);
-alias fnv1aHash64 = fnv1Hash!(ulong, true);
+alias fnv1a = fnv1!(uint, true);
+alias fnv1a64 = fnv1!(ulong, true);
 
-T fnv1Hash(T, bool alternate)(const ubyte[] s) pure nothrow @nogc
+T fnv1(T, bool alternate)(const ubyte[] s) pure nothrow @nogc
     if (is(T == ushort) || is(T == uint) || is(T == ulong))
 {
     static if (is(T == ushort))
@@ -47,7 +47,7 @@ T fnv1Hash(T, bool alternate)(const ubyte[] s) pure nothrow @nogc
 
 unittest
 {
-    enum hash = fnv1aHash(cast(ubyte[])"hello world");
+    enum hash = fnv1a(cast(ubyte[])"hello world");
     static assert(hash == 0xD58B3FA7);
 }
 

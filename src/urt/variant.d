@@ -510,14 +510,14 @@ nothrow @nogc:
                     assert(false, "TODO: implement quantity formatting for JSON");
 
                 if (isDouble())
-                    return asDouble().formatFloat(buffer);
+                    return asDouble().format_float(buffer);
 
                 // TODO: parse args?
                 //format
 
                 if (flags & Flags.Uint64Flag)
-                    return asUlong().formatUint(buffer);
-                return asLong().formatInt(buffer);
+                    return asUlong().format_uint(buffer);
+                return asLong().format_int(buffer);
 
             case Variant.Type.String:
                 const char[] s = asString();
@@ -536,7 +536,7 @@ nothrow @nogc:
                 import urt.format.json;
 
                 // should we just format this like JSON or something?
-                return writeJson(this, buffer);
+                return write_json(this, buffer);
 
             case Variant.Type.User:
                 if (flags & Flags.Embedded)
@@ -691,12 +691,12 @@ unittest
 
 private:
 
-import urt.hash : fnv1aHash;
+import urt.hash : fnv1a;
 
 static assert(Variant.sizeof == 16);
 static assert(Variant.Type.max <= Variant.Flags.TypeMask);
 
-enum uint UserTypeId(T) = fnv1aHash(cast(const(ubyte)[])T.stringof); // maybe this isn't a good enough hash?
+enum uint UserTypeId(T) = fnv1a(cast(const(ubyte)[])T.stringof); // maybe this isn't a good enough hash?
 enum uint UserTypeShortId(T) = cast(ushort)UserTypeId!T ^ (UserTypeId!T >> 16);
 enum bool EmbedUserType(T) = is(T == struct) && T.sizeof <= Variant.embed.sizeof - 2 && T.alignof <= Variant.alignof;
 enum bool UserTypeReturnByRef(T) = is(T == struct);

@@ -197,7 +197,7 @@ Result create_socket(AddressFamily af, SocketType type, Protocol proto, out Sock
     socket.handle = .socket(s_addressFamily[af], s_socketType[type], s_protocol[proto]);
     if (socket == Socket.invalid)
         return socket_getlasterror();
-    return Result.Success;
+    return Result.success;
 }
 
 Result close(Socket socket)
@@ -216,7 +216,7 @@ Result close(Socket socket)
 //        s_noSignal.Erase(socket);
 //    }
 
-    return Result.Success;
+    return Result.success;
 }
 
 Result shutdown(Socket socket, SocketShutdownMode how)
@@ -242,7 +242,7 @@ Result shutdown(Socket socket, SocketShutdownMode how)
 
     if (_shutdown(socket.handle, t) < 0)
         return socket_getlasterror();
-    return Result.Success;
+    return Result.success;
 }
 
 Result bind(Socket socket, ref const InetAddress address)
@@ -254,14 +254,14 @@ Result bind(Socket socket, ref const InetAddress address)
 
     if (_bind(socket.handle, sockAddr, cast(int)addrLen) < 0)
         return socket_getlasterror();
-    return Result.Success;
+    return Result.success;
 }
 
 Result listen(Socket socket, uint backlog = -1)
 {
     if (_listen(socket.handle, int(backlog & 0x7FFFFFFF)) < 0)
         return socket_getlasterror();
-    return Result.Success;
+    return Result.success;
 }
 
 Result connect(Socket socket, ref const InetAddress address)
@@ -273,7 +273,7 @@ Result connect(Socket socket, ref const InetAddress address)
 
     if (_connect(socket.handle, sockAddr, cast(int)addrLen) < 0)
         return socket_getlasterror();
-    return Result.Success;
+    return Result.success;
 }
 
 Result accept(Socket socket, out Socket connection, InetAddress* connectingSocketAddress = null)
@@ -287,12 +287,12 @@ Result accept(Socket socket, out Socket connection, InetAddress* connectingSocke
         return socket_getlasterror();
     else if (connectingSocketAddress)
         *connectingSocketAddress = make_InetAddress(addr);
-    return Result.Success;
+    return Result.success;
 }
 
 Result send(Socket socket, const(void)[] message, MsgFlags flags = MsgFlags.None, size_t* bytesSent = null)
 {
-    Result r = Result.Success;
+    Result r = Result.success;
 
     ptrdiff_t sent = _send(socket.handle, message.ptr, cast(int)message.length, map_message_flags(flags));
     if (sent < 0)
@@ -316,7 +316,7 @@ Result sendto(Socket socket, const(void)[] message, MsgFlags flags = MsgFlags.No
         assert(sockAddr, "Invalid socket address");
     }
 
-    Result r = Result.Success;
+    Result r = Result.success;
     ptrdiff_t sent = _sendto(socket.handle, message.ptr, cast(int)message.length, map_message_flags(flags), sockAddr, cast(int)addrLen);
     if (sent < 0)
     {
@@ -330,7 +330,7 @@ Result sendto(Socket socket, const(void)[] message, MsgFlags flags = MsgFlags.No
 
 Result recv(Socket socket, void[] buffer, MsgFlags flags = MsgFlags.None, size_t* bytesReceived)
 {
-    Result r = Result.Success;
+    Result r = Result.success;
     ptrdiff_t bytes = _recv(socket.handle, buffer.ptr, cast(int)buffer.length, map_message_flags(flags));
     if (bytes > 0)
         *bytesReceived = bytes;
@@ -353,7 +353,7 @@ Result recv(Socket socket, void[] buffer, MsgFlags flags = MsgFlags.None, size_t
             Result error = socket_getlasterror();
             // TODO: Do we want a better way to distinguish between receiving a 0-length packet vs no-data (which looks like an error)?
             //       Is a zero-length packet possible to detect in TCP streams? Makes more sense for recvfrom...
-            SocketResult sr = get_SocketResult(error);
+            SocketResult sr = socket_result(error);
             if (sr != SocketResult.WouldBlock)
                 r = error;
         }
@@ -367,7 +367,7 @@ Result recvfrom(Socket socket, void[] buffer, MsgFlags flags = MsgFlags.None, In
     sockaddr* addr = cast(sockaddr*)addrBuffer.ptr;
     socklen_t size = addrBuffer.sizeof;
 
-    Result r = Result.Success;
+    Result r = Result.success;
     ptrdiff_t bytes = _recvfrom(socket.handle, buffer.ptr, cast(int)buffer.length, map_message_flags(flags), addr, &size);
     if (bytes >= 0)
         *bytesReceived = bytes;
@@ -376,7 +376,7 @@ Result recvfrom(Socket socket, void[] buffer, MsgFlags flags = MsgFlags.None, In
         *bytesReceived = 0;
 
         Result error = socket_getlasterror();
-        SocketResult sockRes = get_SocketResult(error);
+        SocketResult sockRes = socket_result(error);
         if (sockRes != SocketResult.NoBuffer && // buffers full
             sockRes != SocketResult.ConnectionRefused && // posix error
             sockRes != SocketResult.ConnectionReset) // !!! windows may report this error, but it appears to mean something different on posix
@@ -389,7 +389,7 @@ Result recvfrom(Socket socket, void[] buffer, MsgFlags flags = MsgFlags.None, In
 
 Result set_socket_option(Socket socket, SocketOption option, const(void)* optval, size_t optlen)
 {
-    Result r = Result.Success;
+    Result r = Result.success;
 
     // check the option appears to be the proper datatype
     const OptInfo* optInfo = &s_socketOptions[option];
@@ -490,7 +490,7 @@ Result set_socket_option(Socket socket, SocketOption option, bool value)
 {
     const OptInfo* optInfo = &s_socketOptions[option];
     if (optInfo.rtType == OptType.Unsupported)
-        return InternalResult(InternalCode.Unsupported);
+        return InternalResult.unsupported;
     assert(optInfo.rtType == OptType.Bool, "Incorrect value type for option");
     return set_socket_option(socket, option, &value, bool.sizeof);
 }
@@ -499,7 +499,7 @@ Result set_socket_option(Socket socket, SocketOption option, int value)
 {
     const OptInfo* optInfo = &s_socketOptions[option];
     if (optInfo.rtType == OptType.Unsupported)
-        return InternalResult(InternalCode.Unsupported);
+        return InternalResult.unsupported;
     assert(optInfo.rtType == OptType.Int, "Incorrect value type for option");
     return set_socket_option(socket, option, &value, int.sizeof);
 }
@@ -508,7 +508,7 @@ Result set_socket_option(Socket socket, SocketOption option, Duration value)
 {
     const OptInfo* optInfo = &s_socketOptions[option];
     if (optInfo.rtType == OptType.Unsupported)
-        return InternalResult(InternalCode.Unsupported);
+        return InternalResult.unsupported;
     assert(optInfo.rtType == OptType.Duration, "Incorrect value type for option");
     return set_socket_option(socket, option, &value, Duration.sizeof);
 }
@@ -517,7 +517,7 @@ Result set_socket_option(Socket socket, SocketOption option, IPAddr value)
 {
     const OptInfo* optInfo = &s_socketOptions[option];
     if (optInfo.rtType == OptType.Unsupported)
-        return InternalResult(InternalCode.Unsupported);
+        return InternalResult.unsupported;
     assert(optInfo.rtType == OptType.INAddress, "Incorrect value type for option");
     return set_socket_option(socket, option, &value, IPAddr.sizeof);
 }
@@ -526,14 +526,14 @@ Result set_socket_option(Socket socket, SocketOption option, ref MulticastGroup 
 {
     const OptInfo* optInfo = &s_socketOptions[option];
     if (optInfo.rtType == OptType.Unsupported)
-        return InternalResult(InternalCode.Unsupported);
+        return InternalResult.unsupported;
     assert(optInfo.rtType == OptType.MulticastGroup, "Incorrect value type for option");
     return set_socket_option(socket, option, &value, MulticastGroup.sizeof);
 }
 
 Result get_socket_option(Socket socket, SocketOption option, void* output, size_t outputlen)
 {
-    Result r = Result.Success;
+    Result r = Result.success;
 
     // check the option appears to be the proper datatype
     const OptInfo* optInfo = &s_socketOptions[option];
@@ -638,7 +638,7 @@ Result get_socket_option(Socket socket, SocketOption option, out bool output)
 {
     const OptInfo* optInfo = &s_socketOptions[option];
     if (optInfo.rtType == OptType.Unsupported)
-        return InternalResult(InternalCode.Unsupported);
+        return InternalResult.unsupported;
     assert(optInfo.rtType == OptType.Bool, "Incorrect value type for option");
     return get_socket_option(socket, option, &output, bool.sizeof);
 }
@@ -647,7 +647,7 @@ Result get_socket_option(Socket socket, SocketOption option, out int output)
 {
     const OptInfo* optInfo = &s_socketOptions[option];
     if (optInfo.rtType == OptType.Unsupported)
-        return InternalResult(InternalCode.Unsupported);
+        return InternalResult.unsupported;
     assert(optInfo.rtType == OptType.Int, "Incorrect value type for option");
     return get_socket_option(socket, option, &output, int.sizeof);
 }
@@ -656,7 +656,7 @@ Result get_socket_option(Socket socket, SocketOption option, out Duration output
 {
     const OptInfo* optInfo = &s_socketOptions[option];
     if (optInfo.rtType == OptType.Unsupported)
-        return InternalResult(InternalCode.Unsupported);
+        return InternalResult.unsupported;
     assert(optInfo.rtType == OptType.Duration, "Incorrect value type for option");
     return get_socket_option(socket, option, &output, Duration.sizeof);
 }
@@ -665,7 +665,7 @@ Result get_socket_option(Socket socket, SocketOption option, out IPAddr output)
 {
     const OptInfo* optInfo = &s_socketOptions[option];
     if (optInfo.rtType == OptType.Unsupported)
-        return InternalResult(InternalCode.Unsupported);
+        return InternalResult.unsupported;
     assert(optInfo.rtType == OptType.INAddress, "Incorrect value type for option");
     return get_socket_option(socket, option, &output, IPAddr.sizeof);
 }
@@ -682,12 +682,12 @@ Result set_keepalive(Socket socket, bool enable, Duration keepIdle, Duration kee
         uint bytesReturned = 0;
         if (WSAIoctl(socket.handle, SIO_KEEPALIVE_VALS, &alive, alive.sizeof, null, 0, &bytesReturned, null, null) < 0)
             return socket_getlasterror();
-        return Result.Success;
+        return Result.success;
     }
     else
     {
         Result res = set_socket_option(socket, SocketOption.KeepAlive, enable);
-        if (!enable || res != Result.Success)
+        if (!enable || res != Result.success)
             return res;
         version (Darwin)
         {
@@ -697,10 +697,10 @@ Result set_keepalive(Socket socket, bool enable, Duration keepIdle, Duration kee
         else
         {
             res = set_socket_option(socket, SocketOption.TCP_KeepIdle, keepIdle);
-            if (res != Result.Success)
+            if (res != Result.success)
                 return res;
             res = set_socket_option(socket, SocketOption.TCP_KeepIntvl, keepInterval);
-            if (res != Result.Success)
+            if (res != Result.success)
                 return res;
             return set_socket_option(socket, SocketOption.TCP_KeepCnt, keepCount);
         }
@@ -718,7 +718,7 @@ Result get_peer_name(Socket socket, out InetAddress name)
         name = make_InetAddress(addr);
     else
         return socket_getlasterror();
-    return Result.Success;
+    return Result.success;
 }
 
 Result get_socket_name(Socket socket, out InetAddress name)
@@ -732,7 +732,7 @@ Result get_socket_name(Socket socket, out InetAddress name)
         name = make_InetAddress(addr);
     else
         return socket_getlasterror();
-    return Result.Success;
+    return Result.success;
 }
 
 Result get_hostname(char* name, size_t len)
@@ -740,7 +740,7 @@ Result get_hostname(char* name, size_t len)
     int fail = gethostname(name, cast(int)len);
     if (fail)
         return socket_getlasterror();
-    return Result.Success;
+    return Result.success;
 }
 
 Result get_address_info(const(char)[] nodeName, const(char)[] service, AddressInfo* hints, out AddressInfoResolver result)
@@ -782,7 +782,7 @@ Result get_address_info(const(char)[] nodeName, const(char)[] service, AddressIn
     result.m_internal[0] = res;
     result.m_internal[1] = res;
 
-    return Result.Success;
+    return Result.success;
 }
 
 Result poll(PollFd[] pollFds, Duration timeout, out uint numEvents)
@@ -821,7 +821,7 @@ Result poll(PollFd[] pollFds, Duration timeout, out uint numEvents)
                                     ((fds[i].revents & POLLHUP)    ? PollEvents.HangUp  : 0) |
                                     ((fds[i].revents & POLLNVAL)   ? PollEvents.Invalid : 0));
     }
-    return Result.Success;
+    return Result.success;
 }
 
 Result poll(ref PollFd pollFd, Duration timeout, out uint numEvents)
@@ -922,7 +922,7 @@ Result get_socket_error(Socket socket)
 
 // TODO: !!!
 enum Result ConnectionClosedResult = Result(-12345); 
-SocketResult get_SocketResult(Result result)
+SocketResult socket_result(Result result)
 {
     if (result)
         return SocketResult.Success;
@@ -952,7 +952,7 @@ SocketResult get_SocketResult(Result result)
     else version (Posix)
     {
         static assert(EAGAIN == EWOULDBLOCK, "Expected EGAIN and EWOULDBLOCK to be the same value.");
-        auto checkResult = (Result result, int err) => result == PosixResult(err) || cast(int)result.systemCode == err;
+        auto checkResult = (Result result, int err) => result == posix_result(err) || cast(int)result.systemCode == err;
         if (checkResult(result, EINPROGRESS))
             return SocketResult.InProgress;
         if (checkResult(result, EWOULDBLOCK))

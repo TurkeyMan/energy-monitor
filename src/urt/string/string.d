@@ -3,7 +3,7 @@ module urt.string.string;
 import urt.lifetime : forward, move;
 import urt.mem;
 import urt.mem.string : CacheString;
-import urt.hash : fnv1aHash, fnv1aHash64;
+import urt.hash : fnv1a, fnv1a64;
 import urt.string.tailstring : TailString;
 
 public import urt.array : Alloc_T, Alloc, Reserve_T, Reserve, Concat_T, Concat;
@@ -240,9 +240,9 @@ nothrow @nogc:
         if (!ptr)
             return 0;
         static if (size_t.sizeof == 4)
-            return fnv1aHash(cast(ubyte[])ptr[0 .. length]);
+            return fnv1a(cast(ubyte[])ptr[0 .. length]);
         else
-            return fnv1aHash64(cast(ubyte[])ptr[0 .. length]);
+            return fnv1a64(cast(ubyte[])ptr[0 .. length]);
     }
 
     const(char)[] opIndex() const pure
