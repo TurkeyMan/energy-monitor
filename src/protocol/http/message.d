@@ -476,10 +476,10 @@ private:
                 Array!ubyte uncompressed;
                 size_t uncompressedLen;
 
-                if (gzip_uncompressed_length(message.content[], uncompressedLen) != error_code.OK)
+                if (!gzip_uncompressed_length(message.content[], uncompressedLen))
                     return -1;
                 uncompressed.resize(uncompressedLen);
-                if (gzip_uncompress(message.content[], uncompressed[], uncompressedLen) != error_code.OK)
+                if (!gzip_uncompress(message.content[], uncompressed[], uncompressedLen))
                     return -1;
                 if (uncompressedLen != uncompressed.length)
                     return -1; // something went wrong!

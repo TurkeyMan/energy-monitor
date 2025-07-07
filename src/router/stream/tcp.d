@@ -101,7 +101,7 @@ nothrow @nogc:
 
         size_t bytes = 0;
         Result r = socket.recv(buffer, MsgFlags.None, &bytes);
-        if (r != Result.Success)
+        if (r != Result.success)
         {
             SocketResult sr = r.get_SocketResult;
             if (sr != SocketResult.WouldBlock)
@@ -123,7 +123,7 @@ nothrow @nogc:
         {
             size_t bytes;
             Result r = socket.send(data, MsgFlags.None, &bytes);
-            if (r != Result.Success)
+            if (r != Result.success)
             {
                 SocketResult sr = r.get_SocketResult;
                 if (sr == SocketResult.WouldBlock)
@@ -156,7 +156,7 @@ nothrow @nogc:
         size_t bytes;
         Result r = socket.recv(null, MsgFlags.Peek, &bytes);
         assert(false, "TODO: not implemented...");
-        if (r != Result.Success)
+        if (r != Result.success)
         {
 //            SocketResult sr = r.get_SocketResult;
             socket.close();
@@ -181,7 +181,7 @@ nothrow @nogc:
             ubyte[1] buffer;
             size_t bytesReceived;
             Result r = recv(socket, null, MsgFlags.Peek, &bytesReceived);
-            if (r == Result.Success || r.get_SocketResult == SocketResult.WouldBlock)
+            if (r == Result.success || r.get_SocketResult == SocketResult.WouldBlock)
                 _status.linkStatus = Status.Link.Up;
             else
             {

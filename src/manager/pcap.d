@@ -47,7 +47,7 @@ nothrow @nogc:
 
         // open file
         Result r = pcapFile.open(filename, overwrite ? FileOpenMode.WriteTruncate : FileOpenMode.WriteAppend, FileOpenFlags.Sequential);
-        if (r != Result.Success)
+        if (r != Result.success)
             return false;
 
         startOffset = pcapFile.get_pos();
