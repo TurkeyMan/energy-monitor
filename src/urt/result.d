@@ -35,7 +35,7 @@ version (Windows)
 
     Result win32_result(uint err)
         => Result(err);
-    Result get_last_error_result()
+    Result getlasterror_result()
         => Result(GetLastError());
 }
 else version (Posix)

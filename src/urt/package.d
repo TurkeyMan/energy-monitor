@@ -25,10 +25,10 @@ void crt_bootup()
     initClock();
 
     import urt.rand;
-    initRand();
+    init_rand();
 
-    import urt.dbg : setupAssertHandler;
-    setupAssertHandler();
+    import urt.dbg : setup_assert_handler;
+    setup_assert_handler();
 
     import urt.string.string : initStringAllocators;
     initStringAllocators();

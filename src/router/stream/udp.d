@@ -91,7 +91,7 @@ nothrow @nogc:
         Result r = socket.recvfrom(buffer, MsgFlags.None, null, &bytes);
         if (!r)
         {
-            if (r.get_SocketResult() == SocketResult.WouldBlock)
+            if (r.socket_result() == SocketResult.WouldBlock)
                 return 0;
             assert(0);
         }

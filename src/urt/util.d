@@ -443,8 +443,8 @@ ulong byteReverse(ulong v)
 pragma(inline, true) T byteReverse(T)(T val)
     if (!isIntegral!T)
 {
-    import urt.meta : intForWidth;
-    alias U = intForWidth!(T.sizeof*8);
+    import urt.meta : IntForWidth;
+    alias U = IntForWidth!(T.sizeof*8);
     U r = byteReverse(*cast(U*)&val);
     return *cast(T*)&r;
 }

@@ -353,7 +353,7 @@ Result recv(Socket socket, void[] buffer, MsgFlags flags = MsgFlags.None, size_t
             Result error = socket_getlasterror();
             // TODO: Do we want a better way to distinguish between receiving a 0-length packet vs no-data (which looks like an error)?
             //       Is a zero-length packet possible to detect in TCP streams? Makes more sense for recvfrom...
-            SocketResult sr = get_SocketResult(error);
+            SocketResult sr = socket_result(error);
             if (sr != SocketResult.WouldBlock)
                 r = error;
         }
@@ -376,7 +376,7 @@ Result recvfrom(Socket socket, void[] buffer, MsgFlags flags = MsgFlags.None, In
         *bytesReceived = 0;
 
         Result error = socket_getlasterror();
-        SocketResult sockRes = get_SocketResult(error);
+        SocketResult sockRes = socket_result(error);
         if (sockRes != SocketResult.NoBuffer && // buffers full
             sockRes != SocketResult.ConnectionRefused && // posix error
             sockRes != SocketResult.ConnectionReset) // !!! windows may report this error, but it appears to mean something different on posix
@@ -922,7 +922,7 @@ Result get_socket_error(Socket socket)
 
 // TODO: !!!
 enum Result ConnectionClosedResult = Result(-12345); 
-SocketResult get_SocketResult(Result result)
+SocketResult socket_result(Result result)
 {
     if (result)
         return SocketResult.Success;

@@ -82,8 +82,8 @@ ulong endianToNative(T, bool little)(ref const ubyte[8] bytes)
 pragma(inline, true) T endianToNative(T, bool little)(ref const ubyte[T.sizeof] bytes)
     if (!isIntegral!T && !is(T == struct) && !is(T == U[N], U, size_t N))
 {
-    import urt.meta : intForWidth;
-    alias U = intForWidth!(T.sizeof*8);
+    import urt.meta : IntForWidth;
+    alias U = IntForWidth!(T.sizeof*8);
     U u = endianToNative!(U, little)(bytes);
     return *cast(T*)&u;
 }
@@ -206,8 +206,8 @@ ubyte[8] nativeToEndian(bool little)(ulong u)
 pragma(inline, true) auto nativeToEndian(bool little, T)(T val)
     if (!isIntegral!T && !is(T == struct) && !is(T == U[N], U, size_t N))
 {
-    import urt.meta : intForWidth;
-    alias U = intForWidth!(T.sizeof*8);
+    import urt.meta : IntForWidth;
+    alias U = IntForWidth!(T.sizeof*8);
     U r = nativeToEndian!little(*cast(U*)&val);
     return *cast(T*)&r;
 }

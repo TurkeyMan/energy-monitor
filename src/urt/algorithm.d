@@ -48,7 +48,7 @@ auto compare(T, U)(auto ref T a, auto ref U b)
         return a < b ? -1 : (a > b ? 1 : 0);
 }
 
-size_t binarySearch(alias pred = void, T, Cmp...)(T[] arr, auto ref Cmp cmpArgs)
+size_t binary_search(alias pred = void, T, Cmp...)(T[] arr, auto ref Cmp cmpArgs)
 {
     T* p = arr.ptr;
     size_t low = 0;
@@ -165,12 +165,12 @@ unittest
         assert(s.x == arr[i]);
 
     // test binary search, not that they're sorted...
-    assert(binarySearch(arr, -1) == 0);
-    assert(binarySearch!(s => s.x < 30 ? -1 : s.x > 30 ? 1 : 0)(arr2) == 3);
-    assert(binarySearch(arr, 0) == arr.length);
+    assert(binary_search(arr, -1) == 0);
+    assert(binary_search!(s => s.x < 30 ? -1 : s.x > 30 ? 1 : 0)(arr2) == 3);
+    assert(binary_search(arr, 0) == arr.length);
 
     int[10] rep = [1, 10, 10, 10, 10, 10, 10, 10, 10, 100];
-    assert(binarySearch(rep, 10) == 1);
+    assert(binary_search(rep, 10) == 1);
 }
 
 

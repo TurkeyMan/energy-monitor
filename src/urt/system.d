@@ -39,17 +39,17 @@ void sleep(Duration duration)
 
 struct SystemInfo
 {
-    string osName;
+    string os_name;
     string processor;
-    ulong totalMemory;
-    ulong availableMemory;
+    ulong total_memory;
+    ulong available_memory;
     Duration uptime;
 }
 
-SystemInfo getSysInfo()
+SystemInfo get_sysinfo()
 {
     SystemInfo r;
-    r.osName = Platform;
+    r.os_name = Platform;
     r.processor = ProcessorFamily;
     version (Windows)
     {
@@ -57,8 +57,8 @@ SystemInfo getSysInfo()
         mem.dwLength = MEMORYSTATUSEX.sizeof;
         if (GlobalMemoryStatusEx(&mem))
         {
-            r.totalMemory = mem.ullTotalPhys;
-            r.availableMemory = mem.ullAvailPhys;
+            r.total_memory = mem.ullTotalPhys;
+            r.available_memory = mem.ullAvailPhys;
         }
         r.uptime = msecs(GetTickCount64());
     }
@@ -70,8 +70,8 @@ SystemInfo getSysInfo()
         if (sysinfo(&info) < 0)
             assert(false, "sysinfo() failed!");
 
-        r.totalMemory = cast(ulong)info.totalram * info.mem_unit;
-        r.availableMemory = cast(ulong)info.freeram * info.mem_unit;
+        r.total_memory = cast(ulong)info.totalram * info.mem_unit;
+        r.available_memory = cast(ulong)info.freeram * info.mem_unit;
         r.uptime = seconds(info.uptime);
     }
     else version (Posix)
@@ -83,13 +83,13 @@ SystemInfo getSysInfo()
 
         assert(pages >= 0 && page_size >= 0, "sysconf() failed!");
 
-        r.totalMemory = cast(ulong)pages * page_size;
-        static assert(false, "TODO: need `availableMemory`");
+        r.total_memory = cast(ulong)pages * page_size;
+        static assert(false, "TODO: need `available_memory`");
     }
     return r;
 }
 
-void setSystemIdleParams(IdleParams params)
+void set_system_idle_params(IdleParams params)
 {
     version (Windows)
     {
@@ -112,11 +112,11 @@ void setSystemIdleParams(IdleParams params)
 
 unittest
 {
-    SystemInfo info = getSysInfo();
+    SystemInfo info = get_sysinfo();
     assert(info.uptime > Duration.zero);
 
     import urt.io;
-    writelnf("System info: {0} - {1}, mem: {2}kb ({3}kb)", info.osName, info.processor, info.totalMemory / (1024), info.availableMemory / (1024));
+    writelnf("System info: {0} - {1}, mem: {2}kb ({3}kb)", info.os_name, info.processor, info.total_memory / (1024), info.available_memory / (1024));
 }
 
 

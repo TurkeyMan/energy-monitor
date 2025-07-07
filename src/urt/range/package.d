@@ -16,15 +16,15 @@ template map(fun...)
     auto map(Range)(Range r)
         if (isInputRange!(Unqual!Range))
     {
-        import urt.meta : AliasSeq, staticMap;
+        import urt.meta : AliasSeq, STATIC_MAP;
 
         alias RE = ElementType!(Range);
         static if (fun.length > 1)
         {
             import std.functional : adjoin;
-            import urt.meta : staticIndexOf;
+            import urt.meta : static_index_of;
 
-            alias _funs = staticMap!(unaryFun, fun);
+            alias _funs = STATIC_MAP!(unaryFun, fun);
             alias _fun = adjoin!_funs;
 
             // Once https://issues.dlang.org/show_bug.cgi?id=5710 is fixed
@@ -160,9 +160,9 @@ private struct MapResult(alias fun, Range)
 template reduce(fun...)
     if (fun.length >= 1)
 {
-    import urt.meta : staticMap;
+    import urt.meta : STATIC_MAP;
 
-    alias binfuns = staticMap!(binaryFun, fun);
+    alias binfuns = STATIC_MAP!(binaryFun, fun);
     static if (fun.length > 1)
         import urt.meta.tuple : tuple, isTuple;
 
@@ -190,7 +190,7 @@ template reduce(fun...)
     {
         import std.exception : enforce;
         alias E = Select!(isInputRange!R, ElementType!R, ForeachType!R);
-        alias Args = staticMap!(ReduceSeedType!E, binfuns);
+        alias Args = STATIC_MAP!(ReduceSeedType!E, binfuns);
 
         static if (isInputRange!R)
         {
@@ -245,7 +245,7 @@ template reduce(fun...)
 
     private auto reducePreImpl(R, Args...)(R r, ref Args args)
     {
-        alias Result = staticMap!(Unqual, Args);
+        alias Result = STATIC_MAP!(Unqual, Args);
         static if (is(Result == Args))
             alias result = args;
         else

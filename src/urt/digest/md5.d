@@ -14,13 +14,13 @@ struct MD5Context
     enum uint[4] initState = [ 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476 ];
 }
 
-void md5Init(ref MD5Context ctx)
+void md5_init(ref MD5Context ctx)
 {
     ctx.size = 0;
     ctx.buffer = MD5Context.initState;
 }
 
-void md5Update(ref MD5Context ctx, const void[] input)
+void md5_update(ref MD5Context ctx, const void[] input)
 {
     size_t offset = ctx.size % 64;
     ctx.size += input.length;
@@ -41,7 +41,7 @@ void md5Update(ref MD5Context ctx, const void[] input)
         uint[16] tmp = void;
         foreach (uint j; 0 .. 16)
             tmp[j] = loadLittleEndian(cast(uint*)ctx.input.ptr + j);
-        md5Step(ctx.buffer, tmp);
+        md5_step(ctx.buffer, tmp);
 
         size_t tail = input.length - i;
         if (tail < 64)
@@ -54,7 +54,7 @@ void md5Update(ref MD5Context ctx, const void[] input)
     }
 }
 
-ubyte[16] md5Finalise(ref MD5Context ctx)
+ubyte[16] md5_finalise(ref MD5Context ctx)
 {
     uint[16] tmp = void;
     uint offset = ctx.size % 64;
@@ -67,7 +67,7 @@ ubyte[16] md5Finalise(ref MD5Context ctx)
     PADDING[1 .. padding_length] = 0;
 
     // Fill in the padding and undo the changes to size that resulted from the update
-    md5Update(ctx, PADDING[0 .. padding_length]);
+    md5_update(ctx, PADDING[0 .. padding_length]);
     ctx.size -= cast(ulong)padding_length;
 
     // Do a final update (internal to this function)
@@ -78,7 +78,7 @@ ubyte[16] md5Finalise(ref MD5Context ctx)
     tmp[14] = cast(uint)(ctx.size*8);
     tmp[15] = (ctx.size*8) >> 32;
 
-    md5Step(ctx.buffer, tmp);
+    md5_step(ctx.buffer, tmp);
 
     uint[4] digest = void;
     foreach (uint k; 0 .. 4)
@@ -91,13 +91,13 @@ unittest
     import urt.encoding;
 
     MD5Context ctx;
-    md5Init(ctx);
-    auto digest = md5Finalise(ctx);
+    md5_init(ctx);
+    auto digest = md5_finalise(ctx);
     assert(digest == Hex!"d41d8cd98f00b204e9800998ecf8427e");
 
-    md5Init(ctx);
-    md5Update(ctx, "Hello, World!");
-    digest = md5Finalise(ctx);
+    md5_init(ctx);
+    md5_update(ctx, "Hello, World!");
+    digest = md5_finalise(ctx);
     assert(digest == Hex!"65a8e27d8879283831b664bd8b7f0ad4");
 }
 
@@ -131,11 +131,11 @@ __gshared immutable uint[] K = [
 ];
 
 // rotates a 32-bit word left by n bits
-uint rotateLeft(uint x, uint n)
+uint rotate_left(uint x, uint n)
     => (x << n) | (x >> (32 - n));
 
 // step on 512 bits of input with the main MD5 algorithm
-void md5Step(ref uint[4] buffer, ref const uint[16] input)
+void md5_step(ref uint[4] buffer, ref const uint[16] input)
 {
     uint AA = buffer[0];
     uint BB = buffer[1];
@@ -171,7 +171,7 @@ void md5Step(ref uint[4] buffer, ref const uint[16] input)
         uint temp = DD;
         DD = CC;
         CC = BB;
-        BB = BB + rotateLeft(AA + E + K[i] + input[j], S[i]);
+        BB = BB + rotate_left(AA + E + K[i] + input[j], S[i]);
         AA = temp;
     }
 

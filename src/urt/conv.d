@@ -8,7 +8,7 @@ nothrow @nogc:
 
 
 // on error or not-a-number cases, bytesTaken will contain 0
-long parseInt(const(char)[] str, size_t* bytesTaken = null, int base = 10) pure
+long parse_int(const(char)[] str, size_t* bytesTaken = null, int base = 10) pure
 {
     size_t i = 0;
     bool neg = false;
@@ -21,13 +21,13 @@ long parseInt(const(char)[] str, size_t* bytesTaken = null, int base = 10) pure
             i++;
     }
 
-    ulong value = str.ptr[i .. str.length].parseUint(bytesTaken, base);
+    ulong value = str.ptr[i .. str.length].parse_uint(bytesTaken, base);
     if (bytesTaken && *bytesTaken != 0)
         *bytesTaken += i;
     return neg ? -cast(long)value : cast(long)value;
 }
 
-long parseIntWithDecimal(const(char)[] str, out ulong fixedPointDivisor, size_t* bytesTaken = null, int base = 10) pure
+long parse_int_with_decimal(const(char)[] str, out ulong fixedPointDivisor, size_t* bytesTaken = null, int base = 10) pure
 {
     size_t i = 0;
     bool neg = false;
@@ -40,13 +40,13 @@ long parseIntWithDecimal(const(char)[] str, out ulong fixedPointDivisor, size_t*
             i++;
     }
 
-    ulong value = str[i .. str.length].parseUintWithDecimal(fixedPointDivisor, bytesTaken, base);
+    ulong value = str[i .. str.length].parse_uint_with_decimal(fixedPointDivisor, bytesTaken, base);
     if (bytesTaken && *bytesTaken != 0)
         *bytesTaken += i;
     return neg ? -cast(long)value : cast(long)value;
 }
 
-ulong parseUint(const(char)[] str, size_t* bytesTaken = null, int base = 10) pure
+ulong parse_uint(const(char)[] str, size_t* bytesTaken = null, int base = 10) pure
 {
     assert(base > 1 && base <= 36, "Invalid base");
 
@@ -69,7 +69,7 @@ ulong parseUint(const(char)[] str, size_t* bytesTaken = null, int base = 10) pur
     {
         for (; s < e; ++s)
         {
-            uint digit = getDigit(*s);
+            uint digit = get_digit(*s);
             if (digit >= base)
                 break;
             value = value*base + digit;
@@ -81,7 +81,7 @@ ulong parseUint(const(char)[] str, size_t* bytesTaken = null, int base = 10) pur
     return value;
 }
 
-ulong parseUintWithDecimal(const(char)[] str, out ulong fixedPointDivisor, size_t* bytesTaken = null, int base = 10) pure
+ulong parse_uint_with_decimal(const(char)[] str, out ulong fixedPointDivisor, size_t* bytesTaken = null, int base = 10) pure
 {
     assert(base > 1 && base <= 36, "Invalid base");
 
@@ -103,7 +103,7 @@ ulong parseUintWithDecimal(const(char)[] str, out ulong fixedPointDivisor, size_
             goto parse_decimal;
         }
 
-        uint digit = getDigit(c);
+        uint digit = get_digit(c);
         if (digit >= base)
             break;
         value = value*base + digit;
@@ -113,7 +113,7 @@ ulong parseUintWithDecimal(const(char)[] str, out ulong fixedPointDivisor, size_
 parse_decimal:
     for (; s < e; ++s)
     {
-        uint digit = getDigit(*s);
+        uint digit = get_digit(*s);
         if (digit >= base)
         {
             // if i == 1, then the first char was a '.' and the next was not numeric, so this is not a number!
@@ -132,11 +132,11 @@ done:
     return value;
 }
 
-ulong parseUintWithBase(const(char)[] str, size_t* bytesTaken = null) pure
+ulong parse_uint_with_base(const(char)[] str, size_t* bytesTaken = null) pure
 {
     const(char)* p = str.ptr;
-    int base = parseBasePrefix(str);
-    ulong i = parseUint(str, bytesTaken, base);
+    int base = parse_base_prefix(str);
+    ulong i = parse_uint(str, bytesTaken, base);
     if (bytesTaken && *bytesTaken != 0)
         *bytesTaken += str.ptr - p;
     return i;
@@ -147,21 +147,21 @@ unittest
 {
     size_t taken;
     ulong divisor;
-    assert(parseUint("123") == 123);
-    assert(parseInt("+123.456") == 123);
-    assert(parseInt("-123.456", null, 10) == -123);
-    assert(parseUintWithDecimal("123.456", divisor, null, 10) == 123456 && divisor == 1000);
-    assert(parseIntWithDecimal("123.456.789", divisor, &taken, 16) == 1193046 && taken == 7 && divisor == 4096);
-    assert(parseInt("11001", null, 2) == 25);
-    assert(parseIntWithDecimal("-AbCdE.f", divisor, null, 16) == -11259375 && divisor == 16);
-    assert(parseInt("123abc", &taken, 10) == 123 && taken == 3);
-    assert(parseInt("!!!", &taken, 10) == 0 && taken == 0);
-    assert(parseInt("-!!!", &taken, 10) == 0 && taken == 0);
-    assert(parseInt("Wow", &taken, 36) == 42368 && taken == 3);
-    assert(parseUintWithBase("0x100", &taken) == 0x100 && taken == 5);
+    assert(parse_uint("123") == 123);
+    assert(parse_int("+123.456") == 123);
+    assert(parse_int("-123.456", null, 10) == -123);
+    assert(parse_uint_with_decimal("123.456", divisor, null, 10) == 123456 && divisor == 1000);
+    assert(parse_int_with_decimal("123.456.789", divisor, &taken, 16) == 1193046 && taken == 7 && divisor == 4096);
+    assert(parse_int("11001", null, 2) == 25);
+    assert(parse_int_with_decimal("-AbCdE.f", divisor, null, 16) == -11259375 && divisor == 16);
+    assert(parse_int("123abc", &taken, 10) == 123 && taken == 3);
+    assert(parse_int("!!!", &taken, 10) == 0 && taken == 0);
+    assert(parse_int("-!!!", &taken, 10) == 0 && taken == 0);
+    assert(parse_int("Wow", &taken, 36) == 42368 && taken == 3);
+    assert(parse_uint_with_base("0x100", &taken) == 0x100 && taken == 5);
 }
 
-int parseIntFast(ref const(char)[] text, out bool success) pure
+int parse_int_fast(ref const(char)[] text, out bool success) pure
 {
     if (!text.length)
         return 0;
@@ -210,25 +210,25 @@ unittest
 {
     bool success;
     const(char)[] text = "123";
-    assert(parseIntFast(text, success) == 123 && success == true && text.empty);
+    assert(parse_int_fast(text, success) == 123 && success == true && text.empty);
     text = "-2147483648abc";
-    assert(parseIntFast(text, success) == -2147483648 && success == true && text.length == 3);
+    assert(parse_int_fast(text, success) == -2147483648 && success == true && text.length == 3);
     text = "2147483648";
-    assert(parseIntFast(text, success) == 0 && success == false);
+    assert(parse_int_fast(text, success) == 0 && success == false);
     text = "-2147483649";
-    assert(parseIntFast(text, success) == 0 && success == false);
+    assert(parse_int_fast(text, success) == 0 && success == false);
     text = "2147483650";
-    assert(parseIntFast(text, success) == 0 && success == false);
+    assert(parse_int_fast(text, success) == 0 && success == false);
 }
 
 
 // on error or not-a-number, result will be nan and bytesTaken will contain 0
-double parseFloat(const(char)[] str, size_t* bytesTaken = null, int base = 10) pure
+double parse_float(const(char)[] str, size_t* bytesTaken = null, int base = 10) pure
 {
     // TODO: E-notation...
     size_t taken = void;
     ulong div = void;
-    long value = str.parseIntWithDecimal(div, &taken, base);
+    long value = str.parse_int_with_decimal(div, &taken, base);
     if (bytesTaken)
         *bytesTaken = taken;
     if (taken == 0)
@@ -245,15 +245,15 @@ unittest
     }
 
     size_t taken;
-    assert(fcmp(parseFloat("123.456"), 123.456));
-    assert(fcmp(parseFloat("+123.456"), 123.456));
-    assert(fcmp(parseFloat("-123.456.789"), -123.456));
-    assert(fcmp(parseFloat("1101.11", &taken, 2), 13.75) && taken == 7);
-    assert(parseFloat("xyz", &taken) is double.nan && taken == 0);
+    assert(fcmp(parse_float("123.456"), 123.456));
+    assert(fcmp(parse_float("+123.456"), 123.456));
+    assert(fcmp(parse_float("-123.456.789"), -123.456));
+    assert(fcmp(parse_float("1101.11", &taken, 2), 13.75) && taken == 7);
+    assert(parse_float("xyz", &taken) is double.nan && taken == 0);
 }
 
 
-ptrdiff_t formatInt(long value, char[] buffer, uint base = 10, uint width = 0, char fill = ' ', bool showSign = false) pure
+ptrdiff_t format_int(long value, char[] buffer, uint base = 10, uint width = 0, char fill = ' ', bool showSign = false) pure
 {
     const bool neg = value < 0;
     showSign |= neg;
@@ -263,7 +263,7 @@ ptrdiff_t formatInt(long value, char[] buffer, uint base = 10, uint width = 0, c
 
     ulong i = neg ? -value : value;
 
-    ptrdiff_t r = formatUint(i, buffer.ptr ? buffer.ptr[(width == 0 ? showSign : 0) .. buffer.length] : null, base, width, fill);
+    ptrdiff_t r = format_uint(i, buffer.ptr ? buffer.ptr[(width == 0 ? showSign : 0) .. buffer.length] : null, base, width, fill);
     if (r < 0 || !showSign)
         return r;
 
@@ -309,7 +309,7 @@ ptrdiff_t formatInt(long value, char[] buffer, uint base = 10, uint width = 0, c
     return r + 1;
 }
 
-ptrdiff_t formatUint(ulong value, char[] buffer, uint base = 10, uint width = 0, char fill = ' ') pure
+ptrdiff_t format_uint(ulong value, char[] buffer, uint base = 10, uint width = 0, char fill = ' ') pure
 {
     import urt.util : max;
 
@@ -360,36 +360,36 @@ ptrdiff_t formatUint(ulong value, char[] buffer, uint base = 10, uint width = 0,
 unittest
 {
     char[64] buffer;
-    assert(formatInt(0, null) == 1);
-    assert(formatInt(14, null) == 2);
-    assert(formatInt(14, null, 16) == 1);
-    assert(formatInt(-14, null) == 3);
-    assert(formatInt(-14, null, 16) == 2);
-    assert(formatInt(-14, null, 16, 3, '0') == 3);
-    assert(formatInt(-123, null, 10, 6) == 6);
-    assert(formatInt(-123, null, 10, 3) == 4);
-    assert(formatInt(-123, null, 10, 2) == 4);
+    assert(format_int(0, null) == 1);
+    assert(format_int(14, null) == 2);
+    assert(format_int(14, null, 16) == 1);
+    assert(format_int(-14, null) == 3);
+    assert(format_int(-14, null, 16) == 2);
+    assert(format_int(-14, null, 16, 3, '0') == 3);
+    assert(format_int(-123, null, 10, 6) == 6);
+    assert(format_int(-123, null, 10, 3) == 4);
+    assert(format_int(-123, null, 10, 2) == 4);
 
-    size_t len = formatInt(0, buffer);
+    size_t len = format_int(0, buffer);
     assert(buffer[0 .. len] == "0");
-    len = formatInt(14, buffer);
+    len = format_int(14, buffer);
     assert(buffer[0 .. len] == "14");
-    len = formatInt(14, buffer, 2);
+    len = format_int(14, buffer, 2);
     assert(buffer[0 .. len] == "1110");
-    len = formatInt(14, buffer, 8, 3);
+    len = format_int(14, buffer, 8, 3);
     assert(buffer[0 .. len] == " 16");
-    len = formatInt(14, buffer, 16, 4, '0');
+    len = format_int(14, buffer, 16, 4, '0');
     assert(buffer[0 .. len] == "000E");
-    len = formatInt(-14, buffer, 16, 3, '0');
+    len = format_int(-14, buffer, 16, 3, '0');
     assert(buffer[0 .. len] == "-0E");
-    len = formatInt(12345, buffer, 10, 3);
+    len = format_int(12345, buffer, 10, 3);
     assert(buffer[0 .. len] == "12345");
-    len = formatInt(-123, buffer, 10, 6);
+    len = format_int(-123, buffer, 10, 6);
     assert(buffer[0 .. len] == "  -123");
 }
 
 
-ptrdiff_t formatFloat(double value, char[] buffer, const(char)[] format = null) // pure
+ptrdiff_t format_float(double value, char[] buffer, const(char)[] format = null) // pure
 {
     // TODO: this function should be oblitereated and implemented natively...
     //       CRT call can't CTFE, which is a shame
@@ -424,9 +424,9 @@ template to(T)
     {
         long to(const(char)[] str)
         {
-            int base = parseBasePrefix(str);
+            int base = parse_base_prefix(str);
             size_t taken;
-            long r = parseInt(str, &taken, base);
+            long r = parse_int(str, &taken, base);
             assert(taken == str.length, "String is not numeric");
             return r;
         }
@@ -435,9 +435,9 @@ template to(T)
     {
         double to(const(char)[] str)
         {
-            int base = parseBasePrefix(str);
+            int base = parse_base_prefix(str);
             size_t taken;
-            double r = parseFloat(str, &taken, base);
+            double r = parse_float(str, &taken, base);
             assert(taken == str.length, "String is not numeric");
             return r;
         }
@@ -479,7 +479,7 @@ template to(T)
 
 private:
 
-uint getDigit(char c) pure
+uint get_digit(char c) pure
 {
     uint zeroBase = c - '0';
     if (zeroBase < 10)
@@ -493,7 +493,7 @@ uint getDigit(char c) pure
     return -1;
 }
 
-int parseBasePrefix(ref const(char)[] str) pure
+int parse_base_prefix(ref const(char)[] str) pure
 {
     int base = 10;
     if (str.length >= 2)
@@ -510,7 +510,7 @@ int parseBasePrefix(ref const(char)[] str) pure
 
 
 /+
-size_t formatStruct(T)(ref T value, char[] buffer) nothrow @nogc
+size_t format_struct(T)(ref T value, char[] buffer) nothrow @nogc
 {
     import urt.string.format;
 
@@ -530,7 +530,7 @@ unittest
     Packet p;
 
     char[1024] buffer;
-    size_t len = formatStruct(p, buffer);
+    size_t len = format_struct(p, buffer);
     assert(buffer[0 .. len] == "Packet()");
 
 }

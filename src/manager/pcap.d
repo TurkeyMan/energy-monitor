@@ -58,9 +58,9 @@ nothrow @nogc:
         SectionHeaderBlock shb;
         buffer ~= shb.asBytes;
 
-        SystemInfo sysInfo = getSysInfo();
+        SystemInfo sysInfo = get_sysinfo();
         buffer.writeOption(2, sysInfo.processor); // shb_hardware
-        buffer.writeOption(3, sysInfo.osName); // shb_os
+        buffer.writeOption(3, sysInfo.os_name); // shb_os
         buffer.writeOption(4, "ENMS"); // shb_userappl
         buffer.writeOption(0, null);
 

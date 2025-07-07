@@ -103,7 +103,7 @@ nothrow @nogc:
         Result r = socket.recv(buffer, MsgFlags.None, &bytes);
         if (r != Result.success)
         {
-            SocketResult sr = r.get_SocketResult;
+            SocketResult sr = r.socket_result;
             if (sr != SocketResult.WouldBlock)
                 closeLink();
             return 0;
@@ -125,7 +125,7 @@ nothrow @nogc:
             Result r = socket.send(data, MsgFlags.None, &bytes);
             if (r != Result.success)
             {
-                SocketResult sr = r.get_SocketResult;
+                SocketResult sr = r.socket_result;
                 if (sr == SocketResult.WouldBlock)
                     return 0;
 
@@ -158,7 +158,7 @@ nothrow @nogc:
         assert(false, "TODO: not implemented...");
         if (r != Result.success)
         {
-//            SocketResult sr = r.get_SocketResult;
+//            SocketResult sr = r.socket_result;
             socket.close();
             socket = null;
         }
@@ -181,7 +181,7 @@ nothrow @nogc:
             ubyte[1] buffer;
             size_t bytesReceived;
             Result r = recv(socket, null, MsgFlags.Peek, &bytesReceived);
-            if (r == Result.success || r.get_SocketResult == SocketResult.WouldBlock)
+            if (r == Result.success || r.socket_result == SocketResult.WouldBlock)
                 _status.linkStatus = Status.Link.Up;
             else
             {
@@ -216,7 +216,7 @@ nothrow @nogc:
             if (!r)
             {
                 socket = Socket.invalid;
-                debug writeWarning("create_socket() failed with error: ", r.get_SocketResult());
+                debug writeWarning("create_socket() failed with error: ", r.socket_result());
             }
 
             set_socket_option(socket, SocketOption.NonBlocking, true);
@@ -230,12 +230,12 @@ nothrow @nogc:
             {
                 version (Windows)
                 {
-                    if (r.get_SocketResult == SocketResult.WouldBlock)
+                    if (r.socket_result == SocketResult.WouldBlock)
                         return;
                 }
                 else version (Posix)
                 {
-                    if (r.get_SocketResult == SocketResult.InProgress)
+                    if (r.socket_result == SocketResult.InProgress)
                         return;
                 }
                 else
@@ -245,7 +245,7 @@ nothrow @nogc:
                 socket.close();
                 socket = Socket.invalid;
 
-                debug writeWarning("socket.connect() failed with error: ", r.get_SocketResult());
+                debug writeWarning("socket.connect() failed with error: ", r.socket_result());
             }
         }
         else
@@ -260,7 +260,7 @@ nothrow @nogc:
             Result r = poll(fd, Duration.zero, numEvents);
             if (r.failed)
             {
-                debug writeWarning("poll() failed with error: ", r.get_SocketResult);
+                debug writeWarning("poll() failed with error: ", r.socket_result);
                 // TODO: destroy socket and start over?
                 return;
             }
@@ -415,10 +415,10 @@ class TCPServer
         Result r = serverSocket.accept(conn, &remoteAddr);
         if (r.failed)
         {
-            if (r.get_SocketResult == SocketResult.WouldBlock)
+            if (r.socket_result == SocketResult.WouldBlock)
                 return;
             // TODO: handle error more good?
-            assert(false, tconcat(r.get_SocketResult));
+            assert(false, tconcat(r.socket_result));
         }
 
         assert(conn);
@@ -487,7 +487,7 @@ nothrow @nogc:
         size_t taken;
         if (!port)
         {
-            portNumber = cast(size_t)portSuffix.parseInt(&taken);
+            portNumber = cast(size_t)portSuffix.parse_int(&taken);
             if (taken == 0)
                 return session.writeLine("Port must be numeric: ", portSuffix);
         }

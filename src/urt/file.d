@@ -133,7 +133,7 @@ Result delete_file(const(char)[] path)
     version (Windows)
     {
         if (!DeleteFileW(path.twstringz))
-            return get_last_error_result();
+            return getlasterror_result();
     }
     else version (Posix)
     {
@@ -151,7 +151,7 @@ Result rename_file(const(char)[] oldPath, const(char)[] newPath)
     version (Windows)
     {
         if (!MoveFileW(oldPath.twstringz, newPath.twstringz))
-            return get_last_error_result();
+            return getlasterror_result();
     }
     else version (Posix)
     {
@@ -170,7 +170,7 @@ Result copy_file(const(char)[] oldPath, const(char)[] newPath, bool overwriteExi
     version (Windows)
     {
         if (!CopyFileW(oldPath.twstringz, newPath.twstringz, !overwriteExisting))
-            return get_last_error_result();
+            return getlasterror_result();
     }
     else version (Posix)
     {
@@ -193,7 +193,7 @@ Result get_path(ref const File file, ref char[] buffer)
         DWORD dwPathLen = tmp.length - 1;
         DWORD result = GetFinalPathNameByHandleW(cast(HANDLE)file.handle, tmp.ptr, dwPathLen, FILE_NAME_OPENED);
         if (result == 0 || result > dwPathLen)
-            return get_last_error_result();
+            return getlasterror_result();
 
         size_t pathLen = tmp[0..result].uniConvert(buffer);
         if (!pathLen)
@@ -243,7 +243,7 @@ Result get_file_attributes(const(char)[] path, out FileAttributes outAttributes)
     {
         WIN32_FILE_ATTRIBUTE_DATA attrData = void;
         if (!GetFileAttributesExW(path.twstringz, GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &attrData))
-            return get_last_error_result();
+            return getlasterror_result();
 
         outAttributes.attributes = FileAttributeFlag.None;
         if ((attrData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) == FILE_ATTRIBUTE_HIDDEN)
@@ -282,9 +282,9 @@ Result get_attributes(ref const File file, out FileAttributes outAttributes)
         FILE_BASIC_INFO basicInfo = void;
         FILE_STANDARD_INFO standardInfo = void;
         if (!GetFileInformationByHandleEx(cast(HANDLE)file.handle, FILE_INFO_BY_HANDLE_CLASS.FileBasicInfo, &basicInfo, FILE_BASIC_INFO.sizeof))
-            return get_last_error_result();
+            return getlasterror_result();
         if (!GetFileInformationByHandleEx(cast(HANDLE)file.handle, FILE_INFO_BY_HANDLE_CLASS.FileStandardInfo, &standardInfo, FILE_STANDARD_INFO.sizeof))
-            return get_last_error_result();
+            return getlasterror_result();
 
         outAttributes.attributes = FileAttributeFlag.None;
         if ((basicInfo.FileAttributes & FILE_ATTRIBUTE_HIDDEN) == FILE_ATTRIBUTE_HIDDEN)
@@ -321,7 +321,7 @@ void[] load_file(const(char)[] path, NoGCAllocator allocator = defaultAllocator(
 {
     File f;
     Result r = f.open(path, FileOpenMode.ReadExisting);
-    if (!r && r.get_FileResult == FileResult.NotFound)
+    if (!r && r.file_result == FileResult.NotFound)
         return null;
     assert(r, "TODO: handle error");
     ulong size = f.get_size();
@@ -392,7 +392,7 @@ Result open(ref File file, const(char)[] path, FileOpenMode mode, FileOpenFlags 
 
         file.handle = CreateFileW(path.twstringz, dwDesiredAccess, dwShareMode, null, dwCreationDisposition, dwFlagsAndAttributes, null);
         if (file.handle == INVALID_HANDLE_VALUE)
-            return get_last_error_result();
+            return getlasterror_result();
 
         if (mode == FileOpenMode.WriteAppend || mode == FileOpenMode.ReadWriteAppend)
             SetFilePointer(file.handle, 0, null, FILE_END);
@@ -532,7 +532,7 @@ Result set_size(ref File file, ulong size)
         if (size > curFileSize)
         {
             if (!file.set_pos(curFileSize))
-                return get_last_error_result();
+                return getlasterror_result();
 
             // zero-fill
             char[4096] buf = void;
@@ -555,9 +555,9 @@ Result set_size(ref File file, ulong size)
         else
         {
             if (!file.set_pos(size))
-                return get_last_error_result();
+                return getlasterror_result();
             if (!SetEndOfFile(file.handle))
-                return get_last_error_result();
+                return getlasterror_result();
         }
     }
     else version (Posix)
@@ -593,7 +593,7 @@ Result set_pos(ref File file, ulong offset)
         LARGE_INTEGER liDistanceToMove = void;
         liDistanceToMove.QuadPart = offset;
         if (!SetFilePointerEx(file.handle, liDistanceToMove, null, FILE_BEGIN))
-            return get_last_error_result();
+            return getlasterror_result();
     }
     else version (Posix)
     {
@@ -646,7 +646,7 @@ Result read_at(ref File file, void[] buffer, ulong offset, out size_t bytesRead)
         DWORD dwBytesRead;
         if (!ReadFile(file.handle, buffer.ptr, cast(DWORD)buffer.length, &dwBytesRead, &o))
         {
-            Result error = get_last_error_result();
+            Result error = getlasterror_result();
             if (error.systemCode != ERROR_HANDLE_EOF)
                 return error;
         }
@@ -670,7 +670,7 @@ Result write(ref File file, const(void)[] data, out size_t bytesWritten)
     {
         DWORD dwBytesWritten;
         if (!WriteFile(file.handle, data.ptr, cast(uint)data.length, &dwBytesWritten, null))
-            return get_last_error_result();
+            return getlasterror_result();
         bytesWritten = dwBytesWritten;
     }
     else version (Posix)
@@ -698,7 +698,7 @@ Result write_at(ref File file, const(void)[] data, ulong offset, out size_t byte
 
         DWORD dwBytesWritten;
         if (!WriteFile(file.handle, data.ptr, cast(DWORD)data.length, &dwBytesWritten, &o))
-            return get_last_error_result();
+            return getlasterror_result();
         bytesWritten = dwBytesWritten;
     }
     else version (Posix)
@@ -718,7 +718,7 @@ Result flush(ref File file)
     version (Windows)
     {
         if (!FlushFileBuffers(file.handle))
-            return get_last_error_result();
+            return getlasterror_result();
     }
     else version (Posix)
     {
@@ -730,7 +730,7 @@ Result flush(ref File file)
     return Result.success;
 }
 
-FileResult get_FileResult(Result result)
+FileResult file_result(Result result)
 {
     version (Windows)
     {
@@ -772,7 +772,7 @@ Result get_temp_filename(ref char[] buffer, const(char)[] dstDir, const(char)[] 
 
         wchar[MAX_PATH] tmp = void;
         if (!GetTempFileNameW(dstDir.twstringz, prefix.twstringz, 0, tmp.ptr))
-            return get_last_error_result();
+            return getlasterror_result();
         size_t resLen = wcslen(tmp.ptr);
         resLen = tmp[((dstDir.length == 0 && tmp[0] == '\\') ? 1 : 0)..resLen].uniConvert(buffer);
         if (resLen == 0)

@@ -68,7 +68,7 @@ enum ANSI_RESET = "\x1b[0m";
 
 nothrow @nogc:
 
-size_t parseANSICode(const(char)[] text)
+size_t parse_ansi_code(const(char)[] text)
 {
     import urt.string.ascii : isNumeric;
 
@@ -84,17 +84,17 @@ size_t parseANSICode(const(char)[] text)
     return i + 1;
 }
 
-char[] stripDecoration(char[] text) pure
+char[] strip_decoration(char[] text) pure
 {
-    return stripDecoration(text, text);
+    return strip_decoration(text, text);
 }
 
-char[] stripDecoration(const(char)[] text, char[] buffer) pure
+char[] strip_decoration(const(char)[] text, char[] buffer) pure
 {
     size_t len = text.length, outLen = 0;
     char* dst = buffer.ptr;
     const(char)* src = text.ptr;
-    bool writeOutput = text.ptr != buffer.ptr;
+    bool write_output = text.ptr != buffer.ptr;
     for (size_t i = 0; i < len;)
     {
         char c = src[i];
@@ -106,11 +106,11 @@ char[] stripDecoration(const(char)[] text, char[] buffer) pure
             if (j < len && src[j] == 'm')
             {
                 i = j + 1;
-                writeOutput = true;
+                write_output = true;
                 continue;
             }
         }
-        if (BranchMoreExpensiveThanStore || writeOutput)
+        if (BranchMoreExpensiveThanStore || write_output)
             dst[outLen] = c; // skip stores where unnecessary (probably the common case)
         ++outLen;
     }

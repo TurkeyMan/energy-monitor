@@ -13,12 +13,12 @@ public import urt.variant;
 nothrow @nogc:
 
 
-Variant parseJson(const(char)[] text)
+Variant parse_json(const(char)[] text)
 {
-    return parseNode(text);
+    return parse_node(text);
 }
 
-ptrdiff_t writeJson(ref const Variant val, char[] buffer, bool dense = false, uint level = 0, uint indent = 2)
+ptrdiff_t write_json(ref const Variant val, char[] buffer, bool dense = false, uint level = 0, uint indent = 2)
 {
     final switch (val.type)
     {
@@ -76,9 +76,9 @@ ptrdiff_t writeJson(ref const Variant val, char[] buffer, bool dense = false, ui
                 int inc = val.type == Variant.Type.Map ? 2 : 1;
                 for (uint i = 0; i < val.count; i += inc)
                 {
-                    len += writeJson(val.value.n[i], null, dense, level + indent, indent);
+                    len += write_json(val.value.n[i], null, dense, level + indent, indent);
                     if (val.type == Variant.Type.Map)
-                        len += writeJson(val.value.n[i + 1], null, dense, level + indent, indent);
+                        len += write_json(val.value.n[i + 1], null, dense, level + indent, indent);
                 }
                 return len;
             }
@@ -99,7 +99,7 @@ ptrdiff_t writeJson(ref const Variant val, char[] buffer, bool dense = false, ui
                     if (!buffer.newline(written, level + indent))
                         return -1;
                 }
-                ptrdiff_t len = writeJson(val.value.n[i], buffer[written .. $], dense, level + indent, indent);
+                ptrdiff_t len = write_json(val.value.n[i], buffer[written .. $], dense, level + indent, indent);
                 if (len < 0)
                     return -1;
                 written += len;
@@ -107,7 +107,7 @@ ptrdiff_t writeJson(ref const Variant val, char[] buffer, bool dense = false, ui
                 {
                     if (!buffer.append(written, ':') || (!dense && !buffer.append(written, ' ')))
                         return -1;
-                    len = writeJson(val.value.n[i + 1], buffer[written .. $], dense, level + indent, indent);
+                    len = write_json(val.value.n[i + 1], buffer[written .. $], dense, level + indent, indent);
                     if (len < 0)
                         return -1;
                     written += len;
@@ -138,14 +138,14 @@ ptrdiff_t writeJson(ref const Variant val, char[] buffer, bool dense = false, ui
                 assert(false, "TODO: implement quantity formatting for JSON");
 
             if (val.isDouble())
-                return val.asDouble().formatFloat(buffer);
+                return val.asDouble().format_float(buffer);
 
             // TODO: parse args?
             //format
 
             if (val.isUlong())
-                return val.asUlong().formatUint(buffer);
-            return val.asLong().formatInt(buffer);
+                return val.asUlong().format_uint(buffer);
+            return val.asLong().format_int(buffer);
 
         case Variant.Type.User:
             // in order to text-ify a user type, we probably need a hash table of text-ify functions, which
@@ -179,7 +179,7 @@ unittest
         ]
     }`;
 
-    Variant root = parseJson(doc);
+    Variant root = parse_json(doc);
 
     // check the data was parsed correctly...
     assert(root["nothing"].isNull);
@@ -197,18 +197,18 @@ unittest
 
     char[1024] buffer = void;
     // check the dense writer...
-    assert(root["children"].writeJson(null, true) == 61);
-    assert(root["children"].writeJson(buffer, true) == 61);
+    assert(root["children"].write_json(null, true) == 61);
+    assert(root["children"].write_json(buffer, true) == 61);
     assert(buffer[0 .. 61] == `[{"name":"Jane Doe", "age":12}, {"name":"Jack Doe", "age":8}]`);
 
     // check the expanded writer
-    assert(root["children"].writeJson(null, false, 0, 1) == 83);
-    assert(root["children"].writeJson(buffer, false, 0, 1) == 83);
+    assert(root["children"].write_json(null, false, 0, 1) == 83);
+    assert(root["children"].write_json(buffer, false, 0, 1) == 83);
     assert(buffer[0 .. 83] == "[\n {\n  \"name\": \"Jane Doe\",\n  \"age\": 12\n },\n {\n  \"name\": \"Jack Doe\",\n  \"age\": 8\n }\n]");
 
     // check indentation works properly
-    assert(root["children"].writeJson(null, false, 0, 2) == 95);
-    assert(root["children"].writeJson(buffer, false, 0, 2) == 95);
+    assert(root["children"].write_json(null, false, 0, 2) == 95);
+    assert(root["children"].write_json(buffer, false, 0, 2) == 95);
     assert(buffer[0 .. 95] == "[\n  {\n    \"name\": \"Jane Doe\",\n    \"age\": 12\n  },\n  {\n    \"name\": \"Jack Doe\",\n    \"age\": 8\n  }\n]");
 
     // fabricate a JSON object
@@ -220,7 +220,7 @@ unittest
     assert(write[0].asInt == 42);
     assert(write[1]["wow"].isTrue);
     assert(write[1]["bogus"].asBool == false);
-    assert(write.writeJson(buffer, true) == 33);
+    assert(write.write_json(buffer, true) == 33);
     assert(buffer[0 .. 33] == "[42, {\"wow\":true, \"bogus\":false}]");
 }
 
@@ -244,7 +244,7 @@ ptrdiff_t newline(char[] buffer, ref ptrdiff_t offset, int level)
     return true;
 }
 
-Variant parseNode(ref const(char)[] text)
+Variant parse_node(ref const(char)[] text)
 {
     text = text.trimFront();
 
@@ -307,7 +307,7 @@ Variant parseNode(ref const(char)[] text)
             else
                 expectComma = true;
 
-            tmp ~= parseNode(text);
+            tmp ~= parse_node(text);
             if (!isArray)
             {
                 assert(tmp.back().isString());
@@ -315,7 +315,7 @@ Variant parseNode(ref const(char)[] text)
                 text = text.trimFront;
                 assert(text.length > 0 && text[0] == ':');
                 text = text[1 .. $].trimFront;
-                tmp ~= parseNode(text);
+                tmp ~= parse_node(text);
             }
         }
         assert(text.length > 0);
@@ -331,7 +331,7 @@ Variant parseNode(ref const(char)[] text)
         bool neg = text[0] == '-';
         size_t taken = void;
         ulong div = void;
-        ulong value = text[neg .. $].parseUintWithDecimal(div, &taken, 10);
+        ulong value = text[neg .. $].parse_uint_with_decimal(div, &taken, 10);
         assert(taken > 0);
         text = text[taken + neg .. $];
 

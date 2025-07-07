@@ -6,7 +6,7 @@ import urt.hash;
 import urt.mem.allocator;
 import urt.result;
 
-alias zlib_crc = calculateCRC!(Algorithm.CRC32_ISO_HDLC);
+alias zlib_crc = calculate_crc!(Algorithm.CRC32_ISO_HDLC);
 
 nothrow @nogc:
 

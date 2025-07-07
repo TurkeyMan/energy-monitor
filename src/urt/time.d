@@ -279,7 +279,7 @@ pure nothrow @nogc:
     import urt.string.format : FormatArg;
     ptrdiff_t toString(char[] buffer, const(char)[] format, const(FormatArg)[] formatArgs) const
     {
-        import urt.conv : formatInt;
+        import urt.conv : format_int;
 
         size_t offset = 0;
         uint y = year;
@@ -291,37 +291,37 @@ pure nothrow @nogc:
             buffer[0 .. 3] = "BC ";
             offset += 3;
         }
-        ptrdiff_t len = year.formatInt(buffer[offset..$]);
+        ptrdiff_t len = year.format_int(buffer[offset..$]);
         if (len < 0 || len == buffer.length)
             return -1;
         offset += len;
         buffer[offset++] = '-';
-        len = month.formatInt(buffer[offset..$]);
+        len = month.format_int(buffer[offset..$]);
         if (len < 0 || len == buffer.length)
             return -1;
         offset += len;
         buffer[offset++] = '-';
-        len = day.formatInt(buffer[offset..$]);
+        len = day.format_int(buffer[offset..$]);
         if (len < 0 || len == buffer.length)
             return -1;
         offset += len;
         buffer[offset++] = ' ';
-        len = hour.formatInt(buffer[offset..$], 10, 2, '0');
+        len = hour.format_int(buffer[offset..$], 10, 2, '0');
         if (len < 0 || len == buffer.length)
             return -1;
         offset += len;
         buffer[offset++] = ':';
-        len = minute.formatInt(buffer[offset..$], 10, 2, '0');
+        len = minute.format_int(buffer[offset..$], 10, 2, '0');
         if (len < 0 || len == buffer.length)
             return -1;
         offset += len;
         buffer[offset++] = ':';
-        len = second.formatInt(buffer[offset..$], 10, 2, '0');
+        len = second.format_int(buffer[offset..$], 10, 2, '0');
         if (len < 0 || len == buffer.length)
             return -1;
         offset += len;
         buffer[offset++] = '.';
-        len = (ns / 1_000_000).formatInt(buffer[offset..$], 10, 3, '0');
+        len = (ns / 1_000_000).format_int(buffer[offset..$], 10, 3, '0');
         if (len < 0)
             return len;
         return offset + len;
@@ -511,14 +511,14 @@ package(urt) void initClock()
 
 ptrdiff_t timeToString(long ms, char[] buffer) pure
 {
-    import urt.conv : formatInt;
+    import urt.conv : format_int;
 
     long hr = ms / 3_600_000;
 
     if (!buffer.ptr)
-        return hr.formatInt(null, 10, 2, '0') + 10;
+        return hr.format_int(null, 10, 2, '0') + 10;
 
-    ptrdiff_t len = hr.formatInt(buffer, 10, 2, '0');
+    ptrdiff_t len = hr.format_int(buffer, 10, 2, '0');
     if (len < 0 || buffer.length < len + 10)
         return -1;
 

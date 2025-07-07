@@ -64,20 +64,20 @@ template Tuple(Specs...)
 
     // Returns Specs for a subtuple this[from .. to] preserving field
     // names if any.
-    alias sliceSpecs(size_t from, size_t to) = staticMap!(expandSpec, fieldSpecs[from .. to]);
+    alias sliceSpecs(size_t from, size_t to) = STATIC_MAP!(expandSpec, fieldSpecs[from .. to]);
 
     struct Tuple
     {
     nothrow @nogc:
 
-        alias Types = staticMap!(extractType, fieldSpecs);
+        alias Types = STATIC_MAP!(extractType, fieldSpecs);
 
         private alias _Fields = Specs;
 
         /**
         * The names of the `Tuple`'s components. Unnamed fields have empty names.
         */
-        alias fieldNames = staticMap!(extractName, fieldSpecs);
+        alias fieldNames = STATIC_MAP!(extractName, fieldSpecs);
 
         /**
         * Use `t.expand` for a `Tuple` `t` to expand it into its
@@ -369,7 +369,7 @@ template Tuple(Specs...)
                 }
 
                 import std.range : roundRobin, iota;
-                alias NewTupleT = Tuple!(staticMap!(GetItem, aliasSeqOf!(
+                alias NewTupleT = Tuple!(STATIC_MAP!(GetItem, aliasSeqOf!(
                                                                             roundRobin(iota(nT), iota(nT, 2*nT)))));
                 return *(() @trusted => cast(NewTupleT*)&this)();
             }
@@ -545,7 +545,7 @@ template Tuple(Specs...)
                 }
                 else
                 {
-                    formattedWrite(sink, fmt.nested, staticMap!(sharedToString, this.expand));
+                    formattedWrite(sink, fmt.nested, STATIC_MAP!(sharedToString, this.expand));
                 }
             }
             else if (fmt.spec == 's')

@@ -22,16 +22,16 @@ void[] talloc(size_t size) nothrow @nogc
         return null;
     }
 
-    if (allocOffset + size > TempMemSize)
-        allocOffset = 0;
+    if (alloc_offset + size > TempMemSize)
+        alloc_offset = 0;
 
-    void[] mem = tempMem[allocOffset .. allocOffset + size];
-    allocOffset += size;
+    void[] mem = tempMem[alloc_offset .. alloc_offset + size];
+    alloc_offset += size;
 
     return mem;
 }
 
-void[] tallocAligned(size_t size, size_t alignment) nothrow @nogc
+void[] talloc_aligned(size_t size, size_t alignment) nothrow @nogc
 {
     assert(false);
 }
@@ -50,19 +50,19 @@ void[] trealloc(void[] mem, size_t newSize) nothrow @nogc
     return r;
 }
 
-void[] treallocAligned(void[] mem, size_t newSize, size_t alignment) nothrow @nogc
+void[] trealloc_aligned(void[] mem, size_t newSize, size_t alignment) nothrow @nogc
 {
     assert(false);
 }
 
 void[] texpand(void[] mem, size_t newSize) nothrow @nogc
 {
-    if (mem.ptr + mem.length != tempMem.ptr + allocOffset)
+    if (mem.ptr + mem.length != tempMem.ptr + alloc_offset)
         return null;
     ptrdiff_t grow = newSize - mem.length;
-    if (cast(size_t)(allocOffset + grow) > TempMemSize)
+    if (cast(size_t)(alloc_offset + grow) > TempMemSize)
         return null;
-    allocOffset += grow;
+    alloc_offset += grow;
     return mem.ptr[0 .. newSize];
 }
 
@@ -77,23 +77,23 @@ char* tstringz(const(char)[] str) nothrow @nogc
         return null;
 
     size_t len = str.length;
-    if (allocOffset + len + 1 > TempMemSize)
-        allocOffset = 0;
+    if (alloc_offset + len + 1 > TempMemSize)
+        alloc_offset = 0;
 
-    char* r = cast(char*)tempMem.ptr + allocOffset;
+    char* r = cast(char*)tempMem.ptr + alloc_offset;
     r[0 .. len] = str[];
     r[len] = '\0';
-    allocOffset += len + 1;
+    alloc_offset += len + 1;
     return r;
 }
 
 char[] tstring(T)(auto ref T value)
 {
     import urt.string.format : toString;
-    ptrdiff_t r = toString(value, cast(char[])tempMem[allocOffset..$]);
+    ptrdiff_t r = toString(value, cast(char[])tempMem[alloc_offset..$]);
     if (r < 0)
     {
-        allocOffset = 0;
+        alloc_offset = 0;
         r = toString(value, cast(char[])tempMem[0..TempMemSize / 2]);
         if (r < 0)
         {
@@ -101,34 +101,34 @@ char[] tstring(T)(auto ref T value)
             return null;
         }
     }
-    char[] result = cast(char[])tempMem[allocOffset .. allocOffset + r];
-    allocOffset += r;
+    char[] result = cast(char[])tempMem[alloc_offset .. alloc_offset + r];
+    alloc_offset += r;
     return result;
 }
 
 char[] tconcat(Args...)(ref Args args)
 {
     import urt.string.format : concat;
-    char[] r = concat(cast(char[])tempMem[allocOffset..$], args);
+    char[] r = concat(cast(char[])tempMem[alloc_offset..$], args);
     if (!r)
     {
-        allocOffset = 0;
+        alloc_offset = 0;
         r = concat(cast(char[])tempMem[0..TempMemSize / 2], args);
     }
-    allocOffset += r.length;
+    alloc_offset += r.length;
     return r;
 }
 
 char[] tformat(Args...)(const(char)[] fmt, ref Args args)
 {
     import urt.string.format : format;
-    char[] r = format(cast(char[])tempMem[allocOffset..$], fmt, args);
+    char[] r = format(cast(char[])tempMem[alloc_offset..$], fmt, args);
     if (!r)
     {
-        allocOffset = 0;
+        alloc_offset = 0;
         r = format(cast(char[])tempMem[0..TempMemSize / 2], fmt, args);
     }
-    allocOffset += r.length;
+    alloc_offset += r.length;
     return r;
 }
 
@@ -170,4 +170,4 @@ private:
 private:
 
 static void[TempMemSize] tempMem;
-static ushort allocOffset = 0;
+static ushort alloc_offset = 0;
