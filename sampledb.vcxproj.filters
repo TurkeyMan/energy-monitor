@@ -115,6 +115,9 @@
     <Filter Include="src\urt\si">
       <UniqueIdentifier>{932a57f7-c6b2-4f7e-b017-282999bbbe48}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\protocol\ppp">
+      <UniqueIdentifier>{508dd041-891d-4aa4-9154-de16fc507aa5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <DCompile Include="src\router\modbus\profile\solaredge_meter.d">
@@ -581,6 +584,15 @@
     </DCompile>
     <DCompile Include="src\manager\collection.d">
       <Filter>src\manager</Filter>
+    </DCompile>
+    <DCompile Include="src\protocol\ppp\client.d">
+      <Filter>src\protocol\ppp</Filter>
+    </DCompile>
+    <DCompile Include="src\protocol\ppp\package.d">
+      <Filter>src\protocol\ppp</Filter>
+    </DCompile>
+    <DCompile Include="src\protocol\ppp\server.d">
+      <Filter>src\protocol\ppp</Filter>
     </DCompile>
   </ItemGroup>
   <ItemGroup>
