@@ -70,11 +70,6 @@ struct Fibre
                     else
                         thisFibre.fibreEntry(thisFibre.userData);
                 }
-                catch (Exception e)
-                {
-                    // catch the exception... and?
-                    assert(false, "Unhandled exception!");
-                }
                 catch (AbortException e)
                 {
                     thisFibre.aborted = true;
@@ -275,7 +270,7 @@ bool isInFibre() nothrow
 
 private:
 
-class AbortException : Throwable
+class AbortException : Exception
 {
     this(string msg) nothrow @nogc
     {
@@ -313,6 +308,15 @@ unittest
     x = 2;
     f.resume();
     assert(x == 13);
+    f.resume();
+    assert(f.isFinished);
+
+    f.reset();
+    f.resume();
+    assert(x == 11);
+    f.abort();
+    assert(f.isFinished);
+    assert(f.wasAborted);
 }
 
 
