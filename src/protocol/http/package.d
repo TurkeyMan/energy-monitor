@@ -8,6 +8,7 @@ import urt.lifetime;
 import urt.log;
 import urt.map;
 import urt.mem.allocator;
+import urt.meta.nullable;
 import urt.string;
 import urt.string.format : tstring;
 import urt.time;
@@ -17,8 +18,9 @@ import manager.console;
 import manager.plugin;
 
 import protocol.http.client;
-import protocol.http.server;
 import protocol.http.message;
+import protocol.http.server;
+import protocol.http.websocket;
 
 import router.stream.tcp;
 
@@ -34,20 +36,29 @@ nothrow @nogc:
 
     Collection!HTTPClient clients;
     Map!(const(char)[], HTTPServer) servers;
+    Map!(const(char)[], WebSocketServer) wsServers;
 
     override void init()
     {
         g_app.console.registerCollection("/protocol/http/client", clients);
         g_app.console.registerCommand!add_server("/protocol/http/server", this, "add");
         g_app.console.registerCommand!request("/protocol/http", this);
+
+        g_app.console.registerCommand!add_websocket_server("/protocol/websocket/server", this, "add");
     }
 
     HTTPServer createServer(const(char)[] name, ushort port, HTTPServer.RequestHandler handler)
     {
         HTTPServer server = defaultAllocator().allocT!HTTPServer(name.makeString(defaultAllocator()), null, port, handler);
-        servers[server.name[]] = server;
-
+        servers.insert(server.name[], server);
         return server;
+    }
+
+    WebSocketServer createWebSocketServer(String name, HTTPServer httpServer, const(char)[] uri, WebSocketServer.NewConnection connCallback, void* userData)
+    {
+        WebSocketServer wsServer = g_app.allocator.allocT!WebSocketServer(name.move, httpServer, uri, connCallback, userData);
+        wsServers.insert(wsServer.name[], wsServer);
+        return wsServer;
     }
 
     override void update()
@@ -134,5 +145,27 @@ nothrow @nogc:
         HTTPRequestState state = g_app.allocator.allocT!HTTPRequestState(session);
         c.request(method, uri, &state.responseHandler);
         return state;
+    }
+
+    void add_websocket_server(Session session, const(char)[] name, const(char)[] http_server, Nullable!(const(char)[]) uri)
+    {
+        HTTPServer* s = http_server in servers;
+        if (!s)
+        {
+            session.writef("No HTTP server: '{0}'", http_server);
+            return;
+        }
+
+        WebSocketServer wsServer = createWebSocketServer(name.makeString(g_app.allocator), *s, uri ? uri.value : null, &newWebsocket, null);
+        if (!wsServer)
+            session.writef("Failed to create WebSocket server!");
+        else
+            writeInfof("Create WebSocket server '{0}' as HTTP server {1}:{2}", name, http_server, uri);
+    }
+
+    void newWebsocket(WebSocket client, void* userData)
+    {
+        // TODO: new websicket connection...
+        int x = 0;
     }
 }

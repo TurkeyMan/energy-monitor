@@ -48,6 +48,7 @@ mixin template DeclareModule(string name)
 
     this(Application app) nothrow @nogc
     {
+        import urt.string : StringLit;
         super(app, StringLit!ModuleName);
     }
 }
@@ -83,6 +84,7 @@ void registerModules(Application app)
     registerModule!(protocol.http)(app);
     registerModule!(protocol.modbus)(app);
     registerModule!(protocol.mqtt)(app);
+    registerModule!(protocol.ocpp)(app);
 //    registerModule!(protocol.snmp)(app);
     registerModule!(protocol.telnet)(app);
     registerModule!(protocol.tesla)(app);

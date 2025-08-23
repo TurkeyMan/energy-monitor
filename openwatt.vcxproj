@@ -96,6 +96,7 @@
     <DCompile Include="src\protocol\http\message.d" />
     <DCompile Include="src\protocol\http\package.d" />
     <DCompile Include="src\protocol\http\server.d" />
+    <DCompile Include="src\protocol\http\websocket.d" />
     <DCompile Include="src\protocol\modbus\client.d" />
     <DCompile Include="src\protocol\modbus\package.d" />
     <DCompile Include="src\protocol\modbus\sampler.d" />
@@ -103,6 +104,7 @@
     <DCompile Include="src\protocol\mqtt\client.d" />
     <DCompile Include="src\protocol\mqtt\package.d" />
     <DCompile Include="src\protocol\mqtt\util.d" />
+    <DCompile Include="src\protocol\ocpp\package.d" />
     <DCompile Include="src\protocol\package.d" />
     <DCompile Include="src\protocol\snmp\package.d" />
     <DCompile Include="src\protocol\telnet\package.d" />

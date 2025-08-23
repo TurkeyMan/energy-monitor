@@ -75,6 +75,8 @@ nothrow @nogc:
 
     ushort statusCode;              // Status code (e.g., 200, 404, 500) // TODO: Collapse with flags
     String reason;                  // Reason
+
+    // TODO: these fields don't feel right... not clear what they are.
     String url;                     // URL or path (e.g., "/index.html" or full "https://example.com")
     String requestTarget;
 
@@ -557,7 +559,7 @@ void httpStatusLine(HTTPVersion httpVersion, ushort statusCode, const(char)[] re
 void httpFieldLines(scope const HTTPParam[] params, ref MutableString!0 str)
 {
     foreach (ref const kvp; params)
-        str.append( kvp.key, ':', kvp.value, "\r\n");
+        str.append(kvp.key, ':', kvp.value, "\r\n");
 }
 
 void httpDate(ref const DateTime date, ref MutableString!0 str)
